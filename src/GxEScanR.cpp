@@ -48,7 +48,7 @@ Rcpp::List ScanSNPs(const arma::vec& y, const arma::mat& x, std::string GeneticD
 //  unsigned dg, unsigned dgxe = 1, unsigned twodf = 1, unsigned threedf = 1, unsigned ge = 1, unsigned caseOnly = 1, unsigned controlOnly = 1, unsigned dgge = 1) {
   CBedFile bedFile;
   CBinaryDosage dosageFile;
-  CGeneticData *geneticData;
+  CBinaryGeneticData *geneticData;
   CGxEScan gxeScan(y, x);
   Rcpp::List results;
   

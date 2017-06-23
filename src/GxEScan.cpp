@@ -768,7 +768,7 @@ void CGxEScan::SelectTests(bool dg, bool gxe, bool twodf, bool threedf, bool ge,
   m_bModel5 = m_bControlOnly;
 }
 // Scan through the SNPs
-void CGxEScan::Scan(CGeneticData *geneticData, std::string outFilename) {
+void CGxEScan::Scan(CBinaryGeneticData *geneticData, std::string outFilename) {
   unsigned int ui, uj;
   arma::uvec missing;
   std::ofstream snpOutfile;
@@ -804,7 +804,7 @@ void CGxEScan::Scan(CGeneticData *geneticData, std::string outFilename) {
                << geneticData->Chromosome() << '\t'
                << geneticData->SNPName() << '\t'
                << geneticData->Location() << '\t'
-               << geneticData->FirstAllele() << std::endl;
+               << geneticData->MapFile().FirstAllele()[geneticData->CurrentSNP()] << std::endl;
     if (m_bModel1 == true)
       DGTest(ui);
     if (m_bModel2 == true && (m_bModel1 == false || !NumericVector::is_na(m_betaDG)))

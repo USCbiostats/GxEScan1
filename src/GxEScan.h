@@ -126,7 +126,7 @@ public:
   virtual ~CGxEScan() {}
   
   void SelectTests(bool dg, bool gxe, bool twodf, bool threedf, bool ge, bool caseOnly, bool controlOnly, bool dgge);
-  void Scan(CGeneticData *geneticData, std::string outFilename);
+  void Scan(CBinaryGeneticData *geneticData, std::string outFilename);
   void Summary();
   const arma::mat &Cases() const { return m_xCases; }
   const arma::mat &Controls() const { return m_xControls; }
