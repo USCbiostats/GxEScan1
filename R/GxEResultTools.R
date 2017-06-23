@@ -1,12 +1,12 @@
 ReadGxEOut <- function(basefilename, extension) {
   res <- data.table::fread(paste(basefilename, "_", extension, ".gxeout", sep = ""), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-  res.sub <- res[!is.na(P)]
+  res.sub <- with(res, res[!is.na(P)])
   return (res.sub)
 }
 
 QQ <- function(p, t, max, PlotAll) {
-  setnames(p, "p")
-  setkey(p, p)
+  data.table::setnames(p, "p")
+  data.table::setkeyv(p, cols="p")
   num.snp <- nrow(p)
   
   if (PlotAll == TRUE) {
@@ -52,7 +52,7 @@ manhattan <- function(data, sig, min.p, scale, PlotAll, step2) {
     cutoff = 1
   }
   
-  setnames(data, c(1:3), c('p', 'Chr', 'MapInfo'))
+  data.table::setnames(data, c(1:3), c('p', 'Chr', 'MapInfo'))
   data$y <- -log10(data$p)
   Chr <- list()
   for (i in 1:22) {
@@ -75,26 +75,27 @@ manhattan <- function(data, sig, min.p, scale, PlotAll, step2) {
     abline(-1*log10(sig), 0, lwd = 1)
   }
   
-  axis(1, at = seq(scale/2 - 1, 21 + scale/2 , 2), label = seq(0, 22, 2), cex.axis = 0.6)
+  axis(1, at = seq(scale/2 - 1, 21 + scale/2 , 2), labels = seq(0, 22, 2), cex.axis = 0.6)
   
-  axis(2, at = c(cutoff:min.p), label = c(cutoff:min.p), cex.axis = 0.65)
+  axis(2, at = c(cutoff:min.p), labels = c(cutoff:min.p), cex.axis = 0.65)
 }
 
 saveimage <- function(wb, fname, sheetname, picname, row, col) {
   sheet = sheetname
-  createName(wb, name = fname, formula = paste(sheet, idx2cref(c(row, col)), sep = "!"), overwrite = TRUE)
+  XLConnect::createName(wb, name = fname, formula = paste(sheet, XLConnect::idx2cref(c(row, col)), sep = "!"), overwrite = TRUE)
   # Note: idx2cref converts indices (row, col) to Excel cell references
   # Put the image created above at the corresponding location
-  addImage(wb, filename = picname, name = fname, originalSize = TRUE)
+  XLConnect::addImage(wb, filename = picname, name = fname, originalSize = TRUE)
 }
 
 wt <- function(pv, alpha, num) {
   rk.pv <- c(1:nrow(pv))
   grp = ceiling(log(rk.pv/num + 1, base = 2))
-  pv[,Bin := grp]
-  setkey(pv, Bin)
+  with(pv, pv[,Bin := grp])
+#  with(pv, pv[,`:=`(Bin = grp)])
+  data.table::setkeyv(pv, cols="Bin")
   for (i in 1:max(grp)) {
-    pv[J(i), Threshold := alpha*2^(-i)/nrow(pv[J(i)])]
+    with(pv, pv[list(i), Threshold := alpha*2^(-i)/nrow(pv[list(i)])])
   }
 #  pv[0, 0] = pv[0, 0]
 }
@@ -110,13 +111,15 @@ wtplot <- function(results, min.p, title, scale, last.sig, num, PlotAll, fileOut
     cutoff = 1
   }
 #  setnames(results,c(1:4), c('p', 'grp','wt','MapInfo'))
-  results[,y := -log10(results[,Step2_P])]
-
+  with(results, results[,y := -log10(results[,Step2_P])])
+#  results[,data.table::`:=`(y = -log10(results[,Step2_P]))]
+#  results[,data.table::`:=`(y = -log10(results$Step2_P))]
+  
   glist <- list()
   for(i in 1:num){
-    t <- results[J(i)]
-    t[,ref := -1 * log10(min(t[,Threshold]))]
-    t[,x := (t[,Rank] - min(t[,Rank])) / ((max(t[,Rank]) + 0.0001) - min(t[,Rank]))*scale + i - 1]
+    t <- results[list(i)]
+    with(t, t[,ref := -1 * log10(min(t[,Threshold]))])
+    with(t, t[,x := (t[,Rank] - min(t[,Rank])) / ((max(t[,Rank]) + 0.0001) - min(t[,Rank]))*scale + i - 1])
     glist[[i]] <- t
     rm(t)
   }
@@ -124,46 +127,46 @@ wtplot <- function(results, min.p, title, scale, last.sig, num, PlotAll, fileOut
 
   color<-rep(c("blue","olivedrab4"),100)
   
-  plot(glist[[1]][,x], glist[[1]][,y], col="blue", xlab="Bin # for step1 p-values", ylab="-log10(step2 p-values)", xlim=c(0,num), ylim=c(0,min.p), axes=F,pch=19)
-  lines(glist[[1]][,x], glist[[1]][,ref], col="black",lwd=2)
+  with(glist[[1]], plot(glist[[1]][,x], glist[[1]][,y], col="blue", xlab="Bin # for step1 p-values", ylab="-log10(step2 p-values)", xlim=c(0,num), ylim=c(0,min.p), axes=F,pch=19))
+  with(glist[[1]], lines(glist[[1]][,x], glist[[1]][,ref], col="black",lwd=2))
   
   if(PlotAll == FALSE){
     for(i in 2:num-1){
       if(nrow(glist[[i]]) >= 5115){
-        points(glist[[i]][y > cutoff][,x], glist[[i]][y > cutoff][,y], col=color[i],pch=19)
-        rect(-.1 + i - 1, -0.07, 0.8 + i - 1, min(glist[[i]][y > cutoff][,y]) + .1, col = color[i], border = color[i])
+        with(glist[[i]], points(glist[[i]][y > cutoff][,x], glist[[i]][y > cutoff][,y], col=color[i],pch=19))
+        with(glist[[i]], rect(-.1 + i - 1, -0.07, 0.8 + i - 1, min(glist[[i]][y > cutoff][,y]) + .1, col = color[i], border = color[i]))
       } else {
-        points(glist[[i]][,x], glist[[i]][,y], col = color[i], pch = 19)      
+        with(glist[[i]], points(glist[[i]][,x], glist[[i]][,y], col = color[i], pch = 19))
       }
-      lines(glist[[i]][,x], glist[[i]][,ref], col = "black",lwd = 2)
+      with(glist[[i]], lines(glist[[i]][,x], glist[[i]][,ref], col = "black",lwd = 2))
     }
     
-    points(glist[[num]][y > cutoff][,x], glist[[num]][y > cutoff][,y], col = color[num], pch = 19)
-    rect(-.1 + num - 1, -0.07, 0.8 + num - 1, min(glist[[num]][y > cutoff][,y]) + .1, col = color[num], border = color[num])
-    lines(glist[[num]][,x], last.sig, col = "black", lwd = 2)
+    with(glist[[i]], points(glist[[num]][y > cutoff][,x], glist[[num]][y > cutoff][,y], col = color[num], pch = 19))
+    with(glist[[i]], rect(-.1 + num - 1, -0.07, 0.8 + num - 1, min(glist[[num]][y > cutoff][,y]) + .1, col = color[num], border = color[num]))
+    with(glist[[i]], lines(glist[[num]][,x], last.sig, col = "black", lwd = 2))
   } else {
     for(i in 2:num-1){
-      points(glist[[i]][,x], glist[[i]][,y], col = color[i], pch = 19)      
-      lines(glist[[i]][,x], glist[[i]][,ref], col = "black", lwd = 2)
+      with(glist[[i]], points(glist[[i]][,x], glist[[i]][,y], col = color[i], pch = 19))
+      with(glist[[i]], lines(glist[[i]][,x], glist[[i]][,ref], col = "black", lwd = 2))
     }
     
     
-    points(glist[[num]][,x], glist[[num]][,y], col = color[num], pch = 19)
-    lines(glist[[num]][,x], last.sig,col = "black",lwd = 2)
+    with(glist[[num]], points(glist[[num]][,x], glist[[num]][,y], col = color[num], pch = 19))
+    with(glist[[num]], lines(glist[[num]][,x], last.sig,col = "black",lwd = 2))
     
   }	
   
   decix <- (num / 2) - floor(num / 2)
   if(decix > 0){
-    axis(1, at = c(-1.5, seq(.5, num - 0.5, 2)), label = c(0, seq(1, num, 2)), cex.axis = 0.6)
+    axis(1, at = c(-1.5, seq(.5, num - 0.5, 2)), labels = c(0, seq(1, num, 2)), cex.axis = 0.6)
   } else {
     
-    axis(1, at = seq(-.5, num - 0.5, 2), label = seq(0, num, 2), cex.axis = 0.6)
+    axis(1, at = seq(-.5, num - 0.5, 2), labels = seq(0, num, 2), cex.axis = 0.6)
   }
   
   deciy <- (min.p / 2) - floor(min.p / 2)
   
-  axis(2, at = c(0:floor(min.p)), label = c(0:min.p), cex.axis = 0.65)
+  axis(2, at = c(0:floor(min.p)), labels = c(0:min.p), cex.axis = 0.65)
   
   title (main = title, sub = "Bin Size=5")
   if (fileOutput == TRUE)
@@ -172,75 +175,75 @@ wtplot <- function(results, min.p, title, scale, last.sig, num, PlotAll, fileOut
 
 savetitle <- function(wb,sheetname,ref,srow,scol, sideBorder = FALSE) {
   
-  mergeCells(wb,sheet=sheetname,reference=ref)
-  cs <- createCellStyle(wb)
-  setFillForegroundColor(cs, color = XLC$"COLOR.GREY_25_PERCENT")
-  setFillPattern(cs, fill = XLC$"FILL.SOLID_FOREGROUND")
-  setBorder(cs, side = c("bottom"), type = XLC$"BORDER.MEDIUM",color = c(XLC$"COLOR.BLACK"))
+  XLConnect::mergeCells(wb,sheet=sheetname,reference=ref)
+  cs <- XLConnect::createCellStyle(wb)
+  XLConnect::setFillForegroundColor(cs, color = XLConnect::XLC$"COLOR.GREY_25_PERCENT")
+  XLConnect::setFillPattern(cs, fill = XLConnect::XLC$"FILL.SOLID_FOREGROUND")
+  XLConnect::setBorder(cs, side = c("bottom"), type = XLConnect::XLC$"BORDER.MEDIUM",color = c(XLConnect::XLC$"COLOR.BLACK"))
   if (sideBorder)
-    setBorder(cs, side = c("right"), type = XLC$"BORDER.MEDIUM",color = c(XLC$"COLOR.BLACK"))
-  setCellStyle(wb, sheet = sheetname, row = srow, col = scol, cellstyle = cs)
+    XLConnect::setBorder(cs, side = c("right"), type = XLConnect::XLC$"BORDER.MEDIUM",color = c(XLConnect::XLC$"COLOR.BLACK"))
+  XLConnect::setCellStyle(wb, sheet = sheetname, row = srow, col = scol, cellstyle = cs)
   
 }
 
-#' Function to change background of cell to gray
-#' 
-#' Function to change background of cell to gray
-#' 
-#' @param workbook
-#' Excel workbook to use
-#' @param sheet
-#' Sheet in workbook to use
-#' @param row
-#' Row number
-#' @param column
-#' Column number
+# Function to change background of cell to gray
+# 
+# Function to change background of cell to gray
+# 
+# @param workbook
+# Excel workbook to use
+# @param sheet
+# Sheet in workbook to use
+# @param row
+# Row number
+# @param column
+# Column number
 GrayBackground <- function(workbook, sheet, row, column) {
-  cs <- createCellStyle(workbook)
-  setFillForegroundColor(cs, color = XLC$"COLOR.GREY_25_PERCENT")
-  setFillPattern(cs, fill = XLC$"FILL.SOLID_FOREGROUND")
-  setCellStyle(object = workbook, sheet = sheet, row = row, col = column, cellstyle = cs)
+  cs <- XLConnect::createCellStyle(workbook)
+  XLConnect::setFillForegroundColor(cs, color = XLConnect::XLC$"COLOR.GREY_25_PERCENT")
+  XLConnect::setFillPattern(cs, fill = XLConnect::XLC$"FILL.SOLID_FOREGROUND")
+  XLConnect::setCellStyle(object = workbook, sheet = sheet, row = row, col = column, cellstyle = cs)
 }
 
-#' Function to process a two step test from GxEScan
-#' 
-#' Function to take the results for two GxEScan tests that were read in
-#' using the ProcessGxE and produce results for a two step test
-#' 
-#' @param test1
-#' The gxeout output from ProcessGxEOut to be used as the screening test
-#' @param test2
-#' The gxeout output from ProcessGxEOut to be in the second step
-#' @param basefilename
-#' Base filename of output files from GxEScan or GxEMerge also used for plots
-#' @param alpha
-#' Type I error rate
-#' @param screen
-#' Significance level required to be included in second step
-#' @param bins
-#' Number of bins to use in weighted test
-#' @param topnum
-#' Number of top hits to report
-#' @param includeRanks
-#' Indicator to save ranks for Excel output
-#' @param rankName
-#' Name of the column containing the rank
-#' @param ptitle
-#' First part of title for plots
-#' @param generatePlot
-#' Indicator to generate qq and Manhattan plots
-#' @param fileOuput
-#' Indicator to save plots to file - Ignored if generatePlot is FALSE
-#' 
+#--# Function to process a two step test from GxEScan
+#--# 
+#--# Function to take the results for two GxEScan tests that were read in
+#--# using the ProcessGxE and produce results for a two step test
+#--# 
+#--# @param test1
+#--# The gxeout output from ProcessGxEOut to be used as the screening test
+#--# @param test2
+#--# The gxeout output from ProcessGxEOut to be in the second step
+#--# @param basefilename
+#--# Base filename of output files from GxEScan or GxEMerge also used for plots
+#--# @param alpha
+#--# Type I error rate
+#--# @param screen
+#--# Significance level required to be included in second step
+#--# @param bins
+#--# Number of bins to use in weighted test
+#--# @param topnum
+#--# Number of top hits to report
+#--# @param includeRanks
+#--# Indicator to save ranks for Excel output
+#--# @param rankName
+#--# Name of the column containing the rank
+#--# @param ptitle
+#--# First part of title for plots
+#--# @param generatePlot
+#--# Indicator to generate qq and Manhattan plots
+#--# @param fileOuput
+#--# Indicator to save plots to file - Ignored if generatePlot is FALSE
+#--# 
 Process2Step <- function(test1, test2, basefilename, alpha, screen, bins,
                          topnum, includeRanks, rankName, ptitle,
                          generatePlot = TRUE, fileOutput = TRUE) {
-  setnames(test1, c("STAT", "P"), c("Step1_STAT", "Step1_P"))
+  data.table::setnames(test1, c("STAT", "P"), c("Step1_STAT", "Step1_P"))
   wt(test1, alpha, bins[1])
-  setkey(test1, SNPID)
-  setnames(test2, c("NMISS", "STAT", "P"), c("N", "Step2_STAT", "Step2_P"))
+  data.table::setkeyv(test1, cols="SNPID")
+  data.table::setnames(test2, c("NMISS", "STAT", "P"), c("N", "Step2_STAT", "Step2_P"))
   combinedTests <- test2[test1, nomatch = 0]
-  setkey(combinedTests, Step1_P)
+  data.table::setkeyv(combinedTests, cols="Step1_P")
 
   M <- nrow(combinedTests)
   if (M < 1e5) {
@@ -248,45 +251,45 @@ Process2Step <- function(test1, test2, basefilename, alpha, screen, bins,
   } else {
     PlotAll = FALSE
   }
-  setkey(combinedTests, Step1_P)
-  s2 <- combinedTests[Step1_P < screen]
-  s2[,c("Bin", "Threshold") := NULL]
-  combinedTests[,c("SNPID") := NULL]
+  data.table::setkeyv(combinedTests, cols="Step1_P")
+  s2 <- with(combinedTests, combinedTests[Step1_P < screen])
+  with(s2, s2[,c("Bin", "Threshold") := NULL])
+  with(combinedTests, combinedTests[,c("SNPID") := NULL])
   s2.size <- nrow(s2)
   
-  combinedTests[,SigTemp := (combinedTests[,Step2_P] < combinedTests[,Threshold]) * 1]
-  combinedTests[SigTemp == 1, Sig := "***"]
-  combinedTests[SigTemp == 0, Sig := ""]
-  combinedTests[,SigTemp := NULL]
-  combinedTests[,Rank := 1:M]
+  with(combinedTests, combinedTests[,SigTemp := (combinedTests[,Step2_P] < combinedTests[,Threshold]) * 1])
+  with(combinedTests, combinedTests[SigTemp == 1, Sig := "***"])
+  with(combinedTests, combinedTests[SigTemp == 0, Sig := ""])
+  with(combinedTests, combinedTests[,SigTemp := NULL])
+  with(combinedTests, combinedTests[,Rank := 1:M])
   
-  wt.hits <- combinedTests[Sig == "***"]
+  wt.hits <- with(combinedTests, combinedTests[Sig == "***"])
   wt.top <- combinedTests[1:topnum]
   wt.top <- rbind(wt.hits[!wt.hits$Rank %in% wt.top$Rank,], wt.top)
   
   rm(wt.hits)
   
-  step2.min <- min(combinedTests[,Step1_P])
+  step2.min <- min(combinedTests[,c("Step1_P")])
   maxlimqq <- ceiling(1 - log10(step2.min))
   if (generatePlot == TRUE) {
     if (fileOutput == TRUE)
       png(paste(basefilename, "Step1_QQ.png", sep = "_"))
-    QQ(combinedTests[,list(Step1_P)], paste(ptitle, ": Step 1 screen", sep = ""), maxlimqq, PlotAll)
+    with(combinedTests, QQ(combinedTests[,list(Step1_P)], paste(ptitle, ": Step 1 screen", sep = ""), maxlimqq, PlotAll))
     if (fileOutput == TRUE)
       dev.off()
     if (fileOutput == TRUE)
       png(paste(basefilename, "Step1_Manhattan.png", sep = "_"))
-    manhattan(combinedTests[,list(Step1_P, CHR, BP)], 0, maxlimqq, 0.7, PlotAll, 0)
+    with(combinedTests, manhattan(combinedTests[,list(Step1_P, CHR, BP)], 0, maxlimqq, 0.7, PlotAll, 0))
     title(paste(ptitle,": Step 1 screen", sep = ""))
     if (fileOutput == TRUE)
       dev.off()
   }
   
-  combinedTests[,c("CHR","SNP","BP","A1","N","Step1_STAT","Step2_STAT","Step1_P","Sig") := NULL]
+  with(combinedTests, combinedTests[,c("CHR","SNP","BP","A1","N","Step1_STAT","Step2_STAT","Step1_P","Sig") := NULL])
   
   step2.rank <- NULL
   if (s2.size > 0) {        ## If we have SNPs pass to step2
-    step2.min<-min(s2[,Step2_P])
+    step2.min<-with(s2,min(s2[,Step2_P]))
     sig_step2_st2 <- alpha / s2.size
     step2.min2 <- min(step2.min, sig_step2_st2)
     maxlimqq <- ceiling(1 - log10(step2.min))
@@ -300,80 +303,80 @@ Process2Step <- function(test1, test2, basefilename, alpha, screen, bins,
     if (generatePlot == TRUE) {
       if (fileOutput == TRUE)
         png(paste(basefilename, "Step2_QQ.png", sep = "_"))
-      QQ(s2[,list(Step2_P)], paste(ptitle,": Step 2", sep = ""), maxlimqq, PlotAll)
+      with(s2, QQ(s2[,list(Step2_P)], paste(ptitle,": Step 2", sep = ""), maxlimqq, PlotAll))
       if (fileOutput == TRUE)
         dev.off()
       if (fileOutput == TRUE)
         png(paste(basefilename, "Step2_Manhattan.png", sep = "_"))
-      manhattan(s2[,list(Step2_P, CHR, BP)], sig_step2_st2, maxlimman, 0.7, PlotAll, 1)
+      with(s2, manhattan(s2[,list(Step2_P, CHR, BP)], sig_step2_st2, maxlimman, 0.7, PlotAll, 1))
       title(paste(ptitle,": Step 2", sep = ""))
       if (fileOutput == TRUE)
         dev.off()
     }
 
-    setkey(s2,Step2_P)
-    s2[,SigTemp := (s2[,Step2_P] < sig_step2_st2)*1]
-    s2[SigTemp == 1, Sig := "***"]
-    s2[SigTemp == 0, Sig := ""]
-    s2[,SigTemp := NULL]
+    data.table::setkeyv(s2,cols="Step2_P")
+    with(s2, s2[,SigTemp := (s2[,Step2_P] < sig_step2_st2)*1])
+    with(s2, s2[SigTemp == 1, Sig := "***"])
+    with(s2, s2[SigTemp == 0, Sig := ""])
+    with(s2, s2[,SigTemp := NULL])
     
     if(includeRanks == TRUE) {
-      step2.rank <- s2[,list(SNPID)]
-      step2.rank[,c(rankName) := 1:s2.size]
+      step2.rank <- with(s2, s2[,list(SNPID)])
+      with(step2.rank, step2.rank[,c(rankName) := 1:s2.size])
     }
     s2 <- s2[1:topnum]
   } else {
     sig_step2_st2<-NA
   }
 
-  setkey(combinedTests, Bin)
+  data.table::setkeyv(combinedTests, cols="Bin")
   
-  step2.last <- max(combinedTests[,Bin])
+  step2.last <- with(combinedTests, max(combinedTests[,Bin]))
   k <- bins[1] * (2^(step2.last - 1))
   wt.binsig <- alpha * ((1/2)^step2.last)
   wt.sig <- wt.binsig / k
   wt.lnum <- nrow(combinedTests[list(step2.last)])
   wt.ref <- rep(-1 * log10(wt.sig), wt.lnum)
   
-  step2.ref <- max(ceiling(1 - log10(min(combinedTests[,Step2_P]))), wt.ref[1])
+  step2.ref <- max(ceiling(1 - log10(with(combinedTests, min(combinedTests[,Step2_P])))), wt.ref[1])
   wtplot(combinedTests, step2.ref + 1, paste(ptitle, "weighted", sep = " "), 0.7, wt.ref, step2.last, PlotAll,
          basefilename = basefilename)
-  setnames(test2, c("N", "Step2_STAT", "Step2_P"), c("NMISS", "STAT", "P"))
-  setnames(test1, c("Step1_STAT", "Step1_P"), c("STAT", "P"))
+  data.table::setnames(test2, c("N", "Step2_STAT", "Step2_P"), c("NMISS", "STAT", "P"))
+  data.table::setnames(test1, c("Step1_STAT", "Step1_P"), c("STAT", "P"))
   
   return (list(M = M, m = s2.size, sig = sig_step2_st2, ranks = step2.rank, top = s2))
 }
 
-#' Function to process a single gxeout file
-#' 
-#' Function to process results from GxEScan for a one step test. The
-#' outputs from two tests can be passed to the Process2Step function
-#' to generate results for two step tests.
-#' 
-#' @param snpinfo
-#' Data table with SNP information
-#' @param basefilename
-#' Base filename of output files from GxEScan or GxEMerge also used for plots
-#' @param extension
-#' Extenstion to base file name for plot
-#' @param df
-#' Degrees of freedom in test
-#' @param alpha
-#' Type I error rate
-#' @param topnum
-#' Number of top hits to report
-#' @param ptitle
-#' First part of title for plots
-#' @param includeRanks
-#' Indicator to save ranks for Excel output
-#' @param rankName
-#' Name of the column containing the rank
-#' @param generatePlot
-#' Indicator to generate qq and Manhattan plots
-#' @param fileOuput
-#' Indicator to save plots to file - Ignored if generatePlot is FALSE
-#' 
-#' @export
+#--# Function to process a single gxeout file
+#--# 
+#--# Function to process results from GxEScan for a one step test. The
+#--# outputs from two tests can be passed to the Process2Step function
+#--# to generate results for two step tests.
+#--# 
+#--# @param snpinfo
+#--# Data table with SNP information
+#--# @param basefilename
+#--# Base filename of output files from GxEScan or GxEMerge also used for plots
+#--# @param extension
+#--# Extenstion to base file name for plot
+#--# @param df
+#--# Degrees of freedom in test
+#--# @param alpha
+#--# Type I error rate
+#--# @param topnum
+#--# Number of top hits to report
+#--# @param ptitle
+#--# First part of title for plots
+#--# @param includeRanks
+#--# Indicator to save ranks for Excel output
+#--# @param rankName
+#--# Name of the column containing the rank
+#--# @param generatePlot
+#--# Indicator to generate qq and Manhattan plots
+#--# @param fileOuput
+#--# Indicator to save plots to file - Ignored if generatePlot is FALSE
+#--# 
+#--# @export
 ProcessGxEOut <- function(snpinfo, basefilename, extension, df, alpha,
                           topnum, ptitle, includeRanks, rankName,
                           generatePlot = TRUE, fileOutput = TRUE) {
@@ -392,22 +395,22 @@ ProcessGxEOut <- function(snpinfo, basefilename, extension, df, alpha,
   maxlimman <- ceiling(1 - log10(gxe.minman))
   
   if (includeRanks == TRUE) {
-    gxe.rank <- gxeout[,list(SNPID)]
-    gxe.rank[,c(rankName) := 1:M.gxe]
+    gxe.rank <- with(gxeout, gxeout[,list(SNPID)])
+    with(gxe.rank, gxe.rank[,c(rankName) := 1:M.gxe])
   } else {
     gxe.rank <- NULL;
   }
   
   gxe.top <- gxeout[1:topnum]
   
-  gxe.top[, SigTemp := (gxe.top[,P] < sig_gxe) * 1]
-  gxe.top[SigTemp == 1, Sig := "***"]
-  gxe.top[SigTemp == 0, Sig := ""]
-  gxe.top[,SigTemp := NULL]
+  with(gxe.top, gxe.top[, SigTemp := (gxe.top[,P] < sig_gxe) * 1])
+  with(gxe.top, gxe.top[SigTemp == 1, Sig := "***"])
+  with(gxe.top, gxe.top[SigTemp == 0, Sig := ""])
+  with(gxe.top, gxe.top[,SigTemp := NULL])
   
-  setkey(gxeout,SNPID)
+  data.table::setkeyv(gxeout,cols="SNPID")
   if (includeRanks == TRUE)
-    setkey(gxe.top,SNPID)
+    data.table::setkeyv(gxe.top,cols="SNPID")
   
   gxeout <- snpinfo[gxeout]
   gxe.top <- snpinfo[gxe.top]
@@ -415,58 +418,58 @@ ProcessGxEOut <- function(snpinfo, basefilename, extension, df, alpha,
   if (generatePlot == TRUE) {
     if (fileOutput == TRUE)
       png(paste(basefilename, "_", extension, "_QQ.png", sep = ""))
-    QQ(gxeout[,list(P)], ptitle, maxlimqq, PlotAll)
+    with(gxeout, QQ(gxeout[,list(P)], ptitle, maxlimqq, PlotAll))
     if (fileOutput == TRUE)
       dev.off()
     
     if (fileOutput == TRUE)
       png(paste(basefilename, "_", extension, "_Manhattan.png", sep = ""))
-    manhattan(gxeout[,list(P, CHR, BP)], sig_gxe, maxlimman, 0.7, PlotAll, TRUE)
+    with(gxeout, manhattan(gxeout[,list(P, CHR, BP)], sig_gxe, maxlimman, 0.7, PlotAll, TRUE))
     title(ptitle)
     if (fileOutput == TRUE)
       dev.off()
   }
   
   if (df == 1)
-    setnames(gxe.top, c("NMISS", "BETA", "STAT", "P"), c("N", "Beta", "tTest", "Pvalue"))
+    data.table::setnames(gxe.top, c("NMISS", "BETA", "STAT", "P"), c("N", "Beta", "tTest", "Pvalue"))
   else
-    setnames(gxe.top, c("NMISS", "STAT", "P"), c("N", paste("df",df,"_Chisq", sep = ""), "Pvalue"))
+    data.table::setnames(gxe.top, c("NMISS", "STAT", "P"), c("N", paste("df",df,"_Chisq", sep = ""), "Pvalue"))
   
   return(list(top = gxe.top, gxeout = gxeout, M = M.gxe, sig = sig_gxe, ranks = gxe.rank))
 }
 
-#' Function to write GxEScan summary sheet
-#' 
-#' Function to write GxEScan summary sheet
-#' listing tests performed, number of SNPs tests converged for,
-#' overall significance level, and required significance
-#'
-#' @param filename
-#' Excel workbook to write summary sheet to
-#' @param exhaustiveTests
-#' List of indicator of exhaustive tests performed
-#' @param exhaustiveNames
-#' Names of exhaustive test names
-#' @param numSNPs1
-#' Number of SNPs that converged for each test
-#' @param sig1
-#' Overall significance level for each test
-#' @param twoStepTests
-#' Indicator of two step tests performed
-#' @param twoStepNames
-#' Names of two step tests
-#' @param numSNPs2
-#' Number of SNPs that made it to step 2
-#' @param sig2
-#' Overall significance level for two step test
-#' @param bins
-#' Number of bins for weighted tests
-#' @param step1Test
-#' Tests performed for step 1 of two step test
-#' @param stacked
-#' Indicator if two step steps are underneath exhaustive test, otherwise side by side
-#' @param decrip2side
-#' Inidicator if method decriptions are written to side of table, otherwise written below
+#--# Function to write GxEScan summary sheet
+#--# 
+#--# Function to write GxEScan summary sheet
+#--# listing tests performed, number of SNPs tests converged for,
+#--# overall significance level, and required significance
+#--#
+#--# @param filename
+#--# Excel workbook to write summary sheet to
+#--# @param exhaustiveTests
+#--# List of indicator of exhaustive tests performed
+#--# @param exhaustiveNames
+#--# Names of exhaustive test names
+#--# @param numSNPs1
+#--# Number of SNPs that converged for each test
+#--# @param sig1
+#--# Overall significance level for each test
+#--# @param twoStepTests
+#--# Indicator of two step tests performed
+#--# @param twoStepNames
+#--# Names of two step tests
+#--# @param numSNPs2
+#--# Number of SNPs that made it to step 2
+#--# @param sig2
+#--# Overall significance level for two step test
+#--# @param bins
+#--# Number of bins for weighted tests
+#--# @param step1Test
+#--# Tests performed for step 1 of two step test
+#--# @param stacked
+#--# Indicator if two step steps are underneath exhaustive test, otherwise side by side
+#--# @param decrip2side
+#--# Inidicator if method decriptions are written to side of table, otherwise written below
 WriteSummaryWorksheet <- function(workbook, exhaustiveTests, exhaustiveNames, numSNPs1, sig1,
                                   twoStepTests, twoStepNames, numSNPs2, sig2, bins, step1Test,
                                   stacked = TRUE, descrip2side = TRUE) {
@@ -504,8 +507,8 @@ WriteSummaryWorksheet <- function(workbook, exhaustiveTests, exhaustiveNames, nu
           "   2-step with Step-1 screen based on joint test of E-G and D-G association, Step-2 test of GxE using CC analysis (Gauderman et al., 2013)")
   exColNames <- c("Method", "alpha", "M", "alpha/M")
   twoStepColNames <- c("Method", "alpha", "M", "alpha1", "m", "alpha/m", "Bin Size")
-  createSheet(object = workbook, name = "Summary")
-  setColumnWidth(object = workbook, sheet = "Summary", column = 1, width = 3600)
+  XLConnect::createSheet(object = workbook, name = "Summary")
+  XLConnect::setColumnWidth(object = workbook, sheet = "Summary", column = 1, width = 3600)
   
   if (descrip2side)
     stacked = TRUE
@@ -521,16 +524,16 @@ WriteSummaryWorksheet <- function(workbook, exhaustiveTests, exhaustiveNames, nu
     colnames(summaryDF) <- exColNames
     if (descrip2side)
       summaryDF$Description <- x5
-    writeWorksheet(object = workbook, data = summaryDF[exhaustiveTests,], sheet = "Summary",
+    XLConnect::writeWorksheet(object = workbook, data = summaryDF[exhaustiveTests,], sheet = "Summary",
                    startRow = startRow, startCol = startColumn, header = TRUE)
     if (descrip2side)
-      mergeCells(object = workbook, sheet = "Summary", paste("E", startRow, ":L", startRow, sep = ""))
+      XLConnect::mergeCells(object = workbook, sheet = "Summary", paste("E", startRow, ":L", startRow, sep = ""))
     if (sum(twoStepTests) == 0 || stacked)
       startRow <- startRow + sum(exhaustiveTests) + 2
     else
       startRow <- startRow + max(sum(exhaustiveTests), sum(twoStepTests)) + 2
       
-    writeWorksheet(object = workbook, data = x1, sheet = "Summary",
+    XLConnect::writeWorksheet(object = workbook, data = x1, sheet = "Summary",
                    startRow = startRow, startCol = startColumn, header = FALSE)
     if (sum(twoStepTests) == 0 || stacked)
       startRow <- startRow + length(x1) + 1
@@ -538,7 +541,7 @@ WriteSummaryWorksheet <- function(workbook, exhaustiveTests, exhaustiveNames, nu
       startRow <- startRow + max(length(x1), length(x2)) + 1
 
     if (descrip2side == FALSE) {    
-      writeWorksheet(object = workbook, data = x3[exhaustiveTests], sheet = "Summary",
+      XLConnect::writeWorksheet(object = workbook, data = x3[exhaustiveTests], sheet = "Summary",
                      startRow = startRow, startCol = startColumn, header = FALSE)
       startRow <- startRow + sum(exhaustiveTests) + 2
     }
@@ -560,16 +563,16 @@ WriteSummaryWorksheet <- function(workbook, exhaustiveTests, exhaustiveNames, nu
     colnames(summaryDF) <- twoStepColNames
     if (descrip2side)
       summaryDF$Description <- x6
-    writeWorksheet(object = workbook, data = summaryDF[twoStepTests,], sheet = "Summary",
+    XLConnect::writeWorksheet(object = workbook, data = summaryDF[twoStepTests,], sheet = "Summary",
                    startRow = startRow, startCol = startColumn, header = TRUE)
     if (descrip2side)
-      mergeCells(object = workbook, sheet = "Summary", paste("H", startRow, ":T", startRow, sep = ""))
+      XLConnect::mergeCells(object = workbook, sheet = "Summary", paste("H", startRow, ":T", startRow, sep = ""))
     if (sum(twoStepTests) == 0 || stacked)
       startRow <- startRow + sum(twoStepTests) + 2
     else
       startRow <- startRow + max(sum(exhaustiveTests), sum(twoStepTests)) + 2
 
-    writeWorksheet(object = workbook, data = x2, sheet = "Summary",
+    XLConnect::writeWorksheet(object = workbook, data = x2, sheet = "Summary",
                    startRow = startRow, startCol = startColumn, header = FALSE)
     if (stacked == FALSE) {
       if (sum(twoStepTests) == 0 || stacked)
@@ -578,7 +581,7 @@ WriteSummaryWorksheet <- function(workbook, exhaustiveTests, exhaustiveNames, nu
         startRow <- startRow + max(length(x1), length(x2)) + 1
     }
     if (descrip2side == FALSE) {
-      writeWorksheet(object = workbook, data = x4[twoStepTests], sheet = "Summary",
+      XLConnect::writeWorksheet(object = workbook, data = x4[twoStepTests], sheet = "Summary",
                      startRow = startRow, startCol = startColumn, header = FALSE)
     }
   }
@@ -586,10 +589,10 @@ WriteSummaryWorksheet <- function(workbook, exhaustiveTests, exhaustiveNames, nu
 
 wrap <- function(wb,x, sheetname,srow,scol,h,wrap) {
   
-  writeWorksheet(wb, x, sheet = sheetname, startRow = srow, startCol = scol,header=h)
-  cs <- createCellStyle(wb)
-  setWrapText(cs, wrap =wrap)
-  setCellStyle(wb, sheet = sheetname, row = srow, col = scol,cellstyle = cs)
+  XLConnect::writeWorksheet(wb, x, sheet = sheetname, startRow = srow, startCol = scol,header=h)
+  cs <- XLConnect::createCellStyle(wb)
+  XLConnect::setWrapText(cs, wrap =wrap)
+  XLConnect::setCellStyle(wb, sheet = sheetname, row = srow, col = scol,cellstyle = cs)
   
 }
 
@@ -638,38 +641,38 @@ WriteSummaryDescriptions <- function (wb, startRow, numExhaustive, exhaustiveTes
   if (numTwoStep > 0)
     x <- c(x, "2-step tests", x2, "")
   x <- c(x, x3[exhaustiveTests], x4[twoStepTests])
-  writeWorksheet(wb, data.frame(x), sheet = "Summary", startRow = startRow, startCol = 1, header = FALSE)
+  XLConnect::writeWorksheet(wb, data.frame(x), sheet = "Summary", startRow = startRow, startCol = 1, header = FALSE)
 }
 
-#' Function to write exhaustive test results to Excel spreedsheet
-#' 
-#' Function to write exhaustive test results to Excel spreedsheet
-#' 
-#' @param workbook
-#' Workbook to write results to
-#' @param testName
-#' Name of column in testRanks for the test being output
-#' Also is the name of the sheet created for the results
-#' @param basefilename
-#' Base filename of plots
-#' @param extension
-#' Extension to base filename for plot
-#' @param  description
-#' Description of test
-#' @param M
-#' Number of SNPs that test converged for
-#' @param sig
-#' Required significance level
-#' @param topHits
-#' Data table of top hits for test
-#' @param includeRanks
-#' Indicator to include ranks on sheet
-#' @param numMethods
-#' Number of methods included in analysis
-#' @param testRanks
-#' Ranks for all tests performed
-#' @param rankOrder
-#' Order to display rank columns
+#--# Function to write exhaustive test results to Excel spreedsheet
+#--# 
+#--# Function to write exhaustive test results to Excel spreedsheet
+#--# 
+#--# @param workbook
+#--# Workbook to write results to
+#--# @param testName
+#--# Name of column in testRanks for the test being output
+#--# Also is the name of the sheet created for the results
+#--# @param basefilename
+#--# Base filename of plots
+#--# @param extension
+#--# Extension to base filename for plot
+#--# @param  description
+#--# Description of test
+#--# @param M
+#--# Number of SNPs that test converged for
+#--# @param sig
+#--# Required significance level
+#--# @param topHits
+#--# Data table of top hits for test
+#--# @param includeRanks
+#--# Indicator to include ranks on sheet
+#--# @param numMethods
+#--# Number of methods included in analysis
+#--# @param testRanks
+#--# Ranks for all tests performed
+#--# @param rankOrder
+#--# Order to display rank columns
 WriteExhaustiveSheet <- function(workbook, testName, basefilename, extension, description, M, sig,
                                  topHits, includeRanks, numMethods, testRanks, rankOrder) {
   alphabet<- c("I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z")
@@ -679,70 +682,70 @@ WriteExhaustiveSheet <- function(workbook, testName, basefilename, extension, de
   lastLetter <- alphabet[lastcol - 8]
 
   sheet = testName
-  createSheet(workbook, name = sheet)
-  setColumnWidth(workbook, sheet = sheet, column = 1, width = 3000)
-  setColumnWidth(workbook, sheet = sheet, column = 6, width = 2600)
+  XLConnect::createSheet(workbook, name = sheet)
+  XLConnect::setColumnWidth(workbook, sheet = sheet, column = 1, width = 3000)
+  XLConnect::setColumnWidth(workbook, sheet = sheet, column = 6, width = 2600)
   
   wrap(workbook, description, sheet, 26, 1, FALSE, FALSE)
   wrap(workbook, paste("Number of SNPs tested = ", M, "; significance threshold = ", signif(sig, 3), sep=""),
        sheet, 27, 1, FALSE, FALSE)
   
   if (includeRanks == FALSE) {
-    topHits[,SNPID := NULL]
-    writeWorksheet(workbook, topHits, sheet = sheet, startRow = 29, startCol = 1, header = TRUE)
+    with(topHits, topHits[,SNPID := NULL])
+    XLConnect::writeWorksheet(workbook, topHits, sheet = sheet, startRow = 29, startCol = 1, header = TRUE)
   } else {
     for (i in startcol:lastcol)
-      setColumnWidth(object = workbook, sheet = sheet, column = i, width = 2800)
+      XLConnect::setColumnWidth(object = workbook, sheet = sheet, column = i, width = 2800)
     topHits.names <- colnames(topHits[,-1])
     topHits <- testRanks[topHits]
-    topHits[,SNPID:=NULL]
+    with(topHits, topHits[,SNPID:=NULL])
 #    print(c(topHits.names, testName, rankOrder[-which(rankOrder %in% c(testName))]))
-    setcolorder(topHits, c(topHits.names, testName, rankOrder[-which(rankOrder %in% c(testName))]))
-    setkeyv(topHits, c(testName))
+    data.table::setcolorder(topHits, c(topHits.names, testName, rankOrder[-which(rankOrder %in% c(testName))]))
+    data.table::setkeyv(topHits, c(testName))
     wrap(workbook,
          "Ranks:  A blank means the SNP did not converge or did not pass the Step-1 screen for the 2-step approach",
          sheet, 28, startcol, FALSE, FALSE)
     
-    writeWorksheet(workbook, "Ranks", sheet = sheet, startRow = 29, startCol = startcol, header = FALSE)
+    XLConnect::writeWorksheet(workbook, "Ranks", sheet = sheet, startRow = 29, startCol = startcol, header = FALSE)
 
     savetitle(workbook, sheet, paste(firstLetter, "29:", lastLetter, "29", sep=""), 29, c(startcol:lastcol))
-    writeWorksheet(workbook, topHits, sheet = sheet, startRow = 30, startCol = 1, header = TRUE)
+    XLConnect::writeWorksheet(workbook, topHits, sheet = sheet, startRow = 30, startCol = 1, header = TRUE)
   }
   # written at end to avoid issues with changing column widths
   saveimage(workbook, "graph", sheet, paste(basefilename, "_", extension, "_QQ.png", sep = ""), 1, 1)
   saveimage(workbook, "graph", sheet, paste(basefilename, "_", extension, "_Manhattan.png", sep = ""), 1, 11)
 }
-#' Function to write 2 step results to Excel worksheet
-#' 
-#' Function to write 2 step results to Excel worksheet
-#' 
-#' @param workbook
-#' Workbook to write results to
-#' @param testName
-#' Name of column in testRanks for the test being output
-#' @param testType1
-#' Type of statistic for step 1, e.g., ttest, chisq
-#' @param testType2
-#' Type of statistic for step 2, e.g., ttest, chisq
-#' @param basefilename
-#' Base filename of plots
-#' @param extension
-#' Extension to base filename for plot
-#' Also used to create the name of the sheet created for the results
-#' @param  description
-#' Description of test
-#' @param m
-#' Number of SNPs that test passed step 1
-#' @param sig
-#' Required significance level
-#' @param topHits
-#' Data table of top hits for test
-#' @param includeRanks
-#' Indicator to include ranks on sheet
-#' @param testRanks
-#' Ranks for all tests performed
-#' @param rankOrder
-#' Order to display rank columns
+#--# Function to write 2 step results to Excel worksheet
+#--# 
+#--# Function to write 2 step results to Excel worksheet
+#--# 
+#--# @param workbook
+#--# Workbook to write results to
+#--# @param testName
+#--# Name of column in testRanks for the test being output
+#--# @param testType1
+#--# Type of statistic for step 1, e.g., ttest, chisq
+#--# @param testType2
+#--# Type of statistic for step 2, e.g., ttest, chisq
+#--# @param basefilename
+#--# Base filename of plots
+#--# @param extension
+#--# Extension to base filename for plot
+#--# Also used to create the name of the sheet created for the results
+#--# @param  description
+#--# Description of test
+#--# @param m
+#--# Number of SNPs that test passed step 1
+#--# @param sig
+#--# Required significance level
+#--# @param topHits
+#--# Data table of top hits for test
+#--# @param includeRanks
+#--# Indicator to include ranks on sheet
+#--# @param testRanks
+#--# Ranks for all tests performed
+#--# @param rankOrder
+#--# Order to display rank columns
 Write2StepSheet <- function(workbook, testName, testType1, testType2, basefilename, extension,
                             description, m , sig, topHits, includeRanks, testRanks, rankOrder) {
   alphabet<- c("I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z")
@@ -757,13 +760,13 @@ Write2StepSheet <- function(workbook, testName, testType1, testType2, basefilena
   lastLetter <- alphabet[lastcol - 8]
   
   sheet = paste(extension, "Subset", sep = "_")
-  createSheet(workbook, name = sheet)
+  XLConnect::createSheet(workbook, name = sheet)
 
   if (m > 0) {
-    setColumnWidth(workbook, sheet = sheet, column = 6, width = 2600)
-    setColumnWidth(workbook, sheet = sheet, column = 8, width = 2600)
-    setColumnWidth(workbook, sheet = sheet, column = 9, width = 2600)
-    setColumnWidth(workbook, sheet = sheet, column = 1, width = 3000)
+    XLConnect::setColumnWidth(workbook, sheet = sheet, column = 6, width = 2600)
+    XLConnect::setColumnWidth(workbook, sheet = sheet, column = 8, width = 2600)
+    XLConnect::setColumnWidth(workbook, sheet = sheet, column = 9, width = 2600)
+    XLConnect::setColumnWidth(workbook, sheet = sheet, column = 1, width = 3000)
     
     wrap(workbook, description, sheet, 51, 1, FALSE, FALSE)
     wrap(workbook, paste("Number of SNPs tested in Step 2= ", m,"; Step2 significance threshold = ",
@@ -772,9 +775,9 @@ Write2StepSheet <- function(workbook, testName, testType1, testType2, basefilena
     saveimage(workbook, "graph", sheet, paste(basefilename, extension, "Step2_QQ.png", sep = "_"), 26, 1)
     saveimage(workbook, "graph", sheet, paste(basefilename, extension, "Step2_Manhattan.png", sep = "_"), 26, 11)
 
-    writeWorksheet(workbook, "Step 1", sheet = sheet, startRow = 53, startCol = 6, header = FALSE)
+    XLConnect::writeWorksheet(workbook, "Step 1", sheet = sheet, startRow = 53, startCol = 6, header = FALSE)
     savetitle(workbook, sheet, paste("F", "53:", "G", "53", sep=""), 53, c(6:7), sideBorder = TRUE)
-    writeWorksheet(workbook, "Step 2", sheet = sheet, startRow = 53, startCol = 8, header = FALSE)
+    XLConnect::writeWorksheet(workbook, "Step 2", sheet = sheet, startRow = 53, startCol = 8, header = FALSE)
     if (startcol == 11) {
       savetitle(workbook, sheet, paste("H", "53:", "I", "53", sep=""), 53, c(8:9))
       clst <- c(1:6, 9, 10, 7, 8, 11)
@@ -784,75 +787,75 @@ Write2StepSheet <- function(workbook, testName, testType1, testType2, basefilena
     }
     topHits <- topHits[, clst, with = FALSE]
     if (includeRanks == FALSE) {
-      writeWorksheet(wb, top[,-1], sheet = sheet, startRow = 54, startCol = 1, header = TRUE)
+      XLConnect::writeWorksheet(workbook, topHits[,-1], sheet = sheet, startRow = 54, startCol = 1, header = TRUE)
     } else {
-      setkey(topHits, SNPID)
+      data.table::setkeyv(topHits, cols="SNPID")
       topHits.names <- colnames(topHits[,-1])
       topHits <- testRanks[topHits]
-      topHits[,SNPID:=NULL]
-      setcolorder(topHits, c(topHits.names, testName, rankOrder[-which(rankOrder %in% c(testName))]))
+      with(topHits, topHits[,SNPID:=NULL])
+      data.table::setcolorder(topHits, c(topHits.names, testName, rankOrder[-which(rankOrder %in% c(testName))]))
 
       wrap(workbook,
            "Ranks:  A blank means the SNP did not converge or did not pass the Step-1 screen for the 2-step approach",
            sheet, 52, startcol, FALSE, FALSE)
-      writeWorksheet(workbook, "Ranks", sheet = sheet, startRow = 53, startCol = startcol, header = FALSE)
+      XLConnect::writeWorksheet(workbook, "Ranks", sheet = sheet, startRow = 53, startCol = startcol, header = FALSE)
       savetitle(workbook, sheet, paste(firstLetter, "53:", lastLetter, "53", sep=""), 53, c(startcol:lastcol))
       
-      setkeyv(topHits, c(testName))
-      writeWorksheet(workbook, topHits, sheet = sheet, startRow = 54, startCol = 1, header = TRUE)
+      data.table::setkeyv(topHits, c(testName))
+      XLConnect::writeWorksheet(workbook, topHits, sheet = sheet, startRow = 54, startCol = 1, header = TRUE)
     }
     sc <- 6
-    writeWorksheet(workbook, testType1, sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
+    XLConnect::writeWorksheet(workbook, testType1, sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
     sc <- sc + 1
-    writeWorksheet(workbook, "p-value", sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
+    XLConnect::writeWorksheet(workbook, "p-value", sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
     sc <- sc + 1
     if (startcol == 12) {
-      writeWorksheet(workbook, "beta", sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
+      XLConnect::writeWorksheet(workbook, "beta", sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
       sc <- sc + 1
     }
-    writeWorksheet(workbook, testType2, sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
+    XLConnect::writeWorksheet(workbook, testType2, sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
     sc <- sc + 1
-    writeWorksheet(workbook, c("p-value"), sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
+    XLConnect::writeWorksheet(workbook, c("p-value"), sheet = sheet, startRow = 54, startCol = sc, header = FALSE)
     GrayBackground(workbook = workbook, sheet = sheet, row = 54, column = c(6:sc))
   }
   saveimage(workbook, "graph", sheet, paste(basefilename, extension, "Step1_QQ.png", sep = "_"), 1, 1)
   saveimage(workbook, "graph", sheet, paste(basefilename, extension, "Step1_Manhattan.png", sep = "_"), 1, 11)
 }
-#' Function to write weighted 2 step results to Excel worksheet
-#' 
-#' Function to write weighted 2 step results to Excel worksheet
-#' 
-#' @param workbook
-#' Workbook to write results to
-#' @param basefilename
-#' Base filename of plots
-#' @param extension
-#' Extension to base filename for plot
-#' Also used to create the name of the sheet created for the results
-#' @param  description
-#' Description of test
-#' @param topHits
-#' Data table of top hits for test
-#' @param testType1
-#' Type of statistic for step 1, e.g., ttest, chisq
-#' @param testType2
-#' Type of statistic for step 2, e.g., ttest, chisq
+#--# Function to write weighted 2 step results to Excel worksheet
+#--# 
+#--# Function to write weighted 2 step results to Excel worksheet
+#--# 
+#--# @param workbook
+#--# Workbook to write results to
+#--# @param basefilename
+#--# Base filename of plots
+#--# @param extension
+#--# Extension to base filename for plot
+#--# Also used to create the name of the sheet created for the results
+#--# @param  description
+#--# Description of test
+#--# @param topHits
+#--# Data table of top hits for test
+#--# @param testType1
+#--# Type of statistic for step 1, e.g., ttest, chisq
+#--# @param testType2
+#--# Type of statistic for step 2, e.g., ttest, chisq
 WriteWeightedSheet <- function(workbook, basefilename, extension, description, topHits,
                                testType1, testType2) {
   sheet = paste(extension, "Weighted", sep = "_")
-  createSheet(workbook, name = sheet)
+  XLConnect::createSheet(workbook, name = sheet)
 
-  setColumnWidth(workbook, sheet = sheet, column = 7, width = 2600)
-  setColumnWidth(workbook, sheet = sheet, column = 9, width = 2600)
-  setColumnWidth(workbook, sheet = sheet, column = 10, width = 2600)
-  setColumnWidth(workbook, sheet = sheet, column = 12, width = 2600)
-  setColumnWidth(workbook, sheet = sheet, column = 3, width = 3000)
+  XLConnect::setColumnWidth(workbook, sheet = sheet, column = 7, width = 2600)
+  XLConnect::setColumnWidth(workbook, sheet = sheet, column = 9, width = 2600)
+  XLConnect::setColumnWidth(workbook, sheet = sheet, column = 10, width = 2600)
+  XLConnect::setColumnWidth(workbook, sheet = sheet, column = 12, width = 2600)
+  XLConnect::setColumnWidth(workbook, sheet = sheet, column = 3, width = 3000)
 
   wrap(workbook, description, sheet, 26, 1, FALSE, FALSE)
   
-  writeWorksheet(workbook, "Step 1", sheet = sheet, startRow = 27, startCol = 6, header = FALSE)
+  XLConnect::writeWorksheet(workbook, "Step 1", sheet = sheet, startRow = 27, startCol = 6, header = FALSE)
   savetitle(workbook, sheet, paste("F", "27:", "G", "27", sep=""), 27, c(6:7), sideBorder = TRUE)
-  writeWorksheet(workbook, "Step 2", sheet = sheet, startRow = 27, startCol = 8, header = FALSE)
+  XLConnect::writeWorksheet(workbook, "Step 2", sheet = sheet, startRow = 27, startCol = 8, header = FALSE)
   startcol <- NCOL(topHits)
   if (startcol == 11) {
     savetitle(workbook, sheet, paste("H", "27:", "I", "27", sep=""), 27, c(8:9))
@@ -862,20 +865,20 @@ WriteWeightedSheet <- function(workbook, basefilename, extension, description, t
     clst <- c(1:6, 10, 11, 7:9, 12)
   }
   topHits <- topHits[, clst, with = FALSE]
-  writeWorksheet(workbook, topHits[,-1], sheet = sheet, startRow = 28, startCol = 1, header = TRUE)
+  XLConnect::writeWorksheet(workbook, topHits[,-1], sheet = sheet, startRow = 28, startCol = 1, header = TRUE)
   
   sc <- 6
-  writeWorksheet(workbook, testType1, sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
+  XLConnect::writeWorksheet(workbook, testType1, sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
   sc <- sc + 1
-  writeWorksheet(workbook, "p-value", sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
+  XLConnect::writeWorksheet(workbook, "p-value", sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
   sc <- sc + 1
   if (startcol == 12) {
-    writeWorksheet(workbook, "beta", sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
+    XLConnect::writeWorksheet(workbook, "beta", sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
     sc <- sc + 1
   }
-  writeWorksheet(workbook, testType2, sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
+  XLConnect::writeWorksheet(workbook, testType2, sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
   sc <- sc + 1
-  writeWorksheet(workbook, c("p-value"), sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
+  XLConnect::writeWorksheet(workbook, c("p-value"), sheet = sheet, startRow = 28, startCol = sc, header = FALSE)
   GrayBackground(workbook = workbook, sheet = sheet, row = 28, column = c(6:sc))
   
   saveimage(workbook, "graph", sheet, paste(basefilename, extension, "Weighted.png", sep = "_"), 1, 1)

@@ -19,10 +19,8 @@
 #' Having to do this can slow down the speed of the routine because of memory
 #' allocations/deallocations.
 #' @return
-#' 0 success
-#' 1 failure
-#' @importFrom Rcpp evalCpp
-#' @useDynLib GxEScanR
+#' 0 failure
+#' otherwise number of subjects read 
 #' @export
 VCF_to_BinaryDosage <- function(vcfFilename, outBaseFilename, initSub) {
     .Call('GxEScanR_VCF_to_BinaryDosage', PACKAGE = 'GxEScanR', vcfFilename, outBaseFilename, initSub)
@@ -43,8 +41,6 @@ VCF_to_BinaryDosage <- function(vcfFilename, outBaseFilename, initSub) {
 #' @return
 #' List with a vector of dosages and a matrix of probabilities
 #' and a list of the input values
-#' @importFrom Rcpp evalCpp
-#' @useDynLib GxEScanR
 #' @export
 ExtractDosages <- function(bdosageFilename, mapFilename, numSub, numSNPs) {
     .Call('GxEScanR_ExtractDosages', PACKAGE = 'GxEScanR', bdosageFilename, mapFilename, numSub, numSNPs)
@@ -59,11 +55,31 @@ ExtractDosages <- function(bdosageFilename, mapFilename, numSub, numSNPs) {
 #' @return
 #' List with a vector of dosages and a matrix of probabilities
 #' and a list of the input values
-#' @importFrom Rcpp evalCpp
-#' @useDynLib GxEScanR
 #' @export
 ExtractMoreDosages <- function(inputs) {
     .Call('GxEScanR_ExtractMoreDosages', PACKAGE = 'GxEScanR', inputs)
+}
+
+#' Function to extract a SNP from a binary dosage file
+#' 
+#' Function to extract a SNP from a binary dosage file
+#' 
+#' @param bdosageFilename
+#' Name of binary dosage file
+#' @param mapFilename
+#' Name of map file associated with dosage file
+#' @param numSub
+#' Number of subjects with data in dosage file
+#' @param snpName
+#' Name of SNP to extract
+#' @param flanking
+#' Number of flanking SNPs on either side to include
+#' @return
+#' List with a vector of dosages and a matrix of probabilities
+#' and a list of the input values
+#' @export
+ExtractSNPDosages <- function(bdosageFilename, mapFilename, numSub, snpName, flanking) {
+    .Call('GxEScanR_ExtractSNPDosages', PACKAGE = 'GxEScanR', bdosageFilename, mapFilename, numSub, snpName, flanking)
 }
 
 #' Function to merge the results from several GxEScans
@@ -92,10 +108,12 @@ GxEMerge <- function(logistic, basefileNames, outfileName) {
 #' Vector of outcome values, 0 or 1, all others treated as missing
 #' @param x
 #' Matric of covariates. Last column is tested for interaction with gene
-#' @param BedFilename
-#' Name of file with measured genetic data in plink format
+#' @param GeneticDataFilename
+#' Name of file with genetic data in a binary file (measured or dosage data)
 #' @param MapFilename
 #' Name of map file associated with measured genetic data file
+#' @param outFilename
+#' Base filename for output files
 #' @param dg
 #' Perform D|G test
 #' @param dgxe
@@ -120,12 +138,9 @@ GxEMerge <- function(logistic, basefileNames, outfileName) {
 #' The parameter estimates
 #' The Z statistic for each estimate
 #' The 2df chi-squared statistic for beta_g = 0 and beta_GxE = 0
-#' @importFrom Rcpp evalCpp
-#' @importFrom data.table fread setkey
-#' @useDynLib GxEScanR
 #' @export
-ScanSNPs <- function(y, x, BedFilename, MapFilename, outFilename, dg, dgxe, twodf, threedf, ge, caseOnly, controlOnly, dgge) {
-    .Call('GxEScanR_ScanSNPs', PACKAGE = 'GxEScanR', y, x, BedFilename, MapFilename, outFilename, dg, dgxe, twodf, threedf, ge, caseOnly, controlOnly, dgge)
+ScanSNPs <- function(y, x, GeneticDataFilename, MapFilename, outFilename, dg, dgxe, twodf, threedf, ge, caseOnly, controlOnly, dgge) {
+    .Call('GxEScanR_ScanSNPs', PACKAGE = 'GxEScanR', y, x, GeneticDataFilename, MapFilename, outFilename, dg, dgxe, twodf, threedf, ge, caseOnly, controlOnly, dgge)
 }
 
 #' Function to read a SNP from a measured genetic data file

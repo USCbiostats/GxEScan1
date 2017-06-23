@@ -27,9 +27,6 @@ CGeneticData::CGeneticData() : CReadFile() {
 }
 // Destructor
 CGeneticData::~CGeneticData() {
-#ifdef DEBUG_DELETE
-	std::cout << "Entering CGeneticData destructor" << std::endl;
-#endif
 	m_infile.close();
 	m_infile.clear();
 }
@@ -65,12 +62,6 @@ CBinaryGeneticData::CBinaryGeneticData() : CGeneticData() {
 }
 // Destructor
 CBinaryGeneticData::~CBinaryGeneticData() {
-#ifdef DEBUG_DELETE
-	std::cout << "Entering CBinaryGeneticData Destructor" << std::endl;
-#endif
-  // Fix - If m_pSNPArray changed to vector this can be removed.
-//	if (m_pSNPArray)
-//		delete[] m_pSNPArray;
 }
 
 // ***************************************************************************//
@@ -90,15 +81,12 @@ void CBinaryGeneticData::SwapAlleles() {
 
 // Reads SNP data from file for current record
 int CBinaryGeneticData::ReadSNP() {
-  std::cout << "Reading SNP" << std::endl;
-  std::cout << m_currentSNP << '\t' << m_numSNPs << std::endl;
   // Are there more SNPs to read?
   if (m_currentSNP >= m_numSNPs)
     return 1;
   // Skipped SNPs indicated as unused in map file
   while (m_Skipped[m_currentSNP]) {
 		++m_currentSNP;
-	  std::cout << "current\t" << m_currentSNP << "\tmax\t" << m_numSNPs << std::endl;
 		if (m_currentSNP >= m_numSNPs)
 			return 1;
 // Need to update to different class for each format
@@ -118,7 +106,7 @@ int CBinaryGeneticData::ReadSNP() {
 }
 // Get the first SNP - resets file to first record and reads SNP
 int CBinaryGeneticData::GetFirst() {
-	m_currentSNP = 0;
+  m_currentSNP = 0;
 	m_infile.clear();
 	m_infile.seekg(m_headerSize);
 	return ReadSNP();

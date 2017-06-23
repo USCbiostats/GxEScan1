@@ -4,17 +4,25 @@
 \alias{GxEResults}
 \title{Function to process results from GxEScan}
 \usage{
-GxEResults(homedir, basefilename, alpha = 0.05, exhaustiveTests,
-  topnum = 10, includeRanks = FALSE, bins, screens, twoStepTests)
+GxEResults(basefilename, alpha = 0.05, exhaustiveTests, topnum = 10,
+  includeRanks = FALSE, bins, screens, twoStepTests)
 }
 \arguments{
 \item{basefilename}{Base filename of output files from GxEScan or GxEMerge}
 
 \item{alpha}{Type I error rate}
 
+\item{exhaustiveTests}{boolean array of indicators for which exhaustive tests are to be included in the Excel file}
+
 \item{topnum}{Number of top hits to report}
 
 \item{includeRanks}{Include ranks}
+
+\item{bins}{Number of bins to use when doing weighted tests}
+
+\item{screens}{Significance level required for stage 1 of two step tests}
+
+\item{twoStepTests}{boolean array of indicactos for which two step tests are to included in the Excel file}
 }
 \description{
 Function to process results from GxEScan to perform the two-step steps

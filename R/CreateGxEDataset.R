@@ -31,7 +31,7 @@ CreateGxEScanDataset <- function(family, covariates, sex=FALSE, sexInteraction =
       return (NULL)
     if (is.na(phenotype) == FALSE)
       return (NULL)
-    famcov <- fam
+    famcov <- family
     y <- data.matrix(famcov$Phenotype)
     x <- data.matrix(famcov$Male)
     return (list(Y=y,X=x))

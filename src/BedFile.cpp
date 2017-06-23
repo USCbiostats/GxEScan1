@@ -49,6 +49,7 @@ int CBedFile::ReadFile(const std::string &filename, unsigned int numSub, const s
 		m_errorString = m_mapFile.ErrorString();
 		return 1;
 	}
+	m_Skipped = m_mapFile.Skipped();
 	m_numSubjects = numSub;
 	m_numSNPs = m_mapFile.NumSNPs();
 

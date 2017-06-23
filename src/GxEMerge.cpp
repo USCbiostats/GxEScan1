@@ -69,7 +69,7 @@ int CCombineFiles::ReadListFile(const std::string &_filename) {
 
 	infile.open(_filename.c_str());
 	if (!infile.good()) {
-		std::cerr << "Unable to open file " << _filename << std::endl;
+		Rcpp::Rcerr << "Unable to open file " << _filename << std::endl;
 		return 1;
 	}
 
@@ -93,10 +93,10 @@ int CCombineFiles::ReadListFile(const std::string &_filename) {
 	lineEnd = strchr(lineEnd, 0x0a);
 	*lineEnd = 0;
 
-	std::cout << "File size:\t\t" << filesize << std::endl;
-	std::cout << "Number of file names in list:\t" << m_numFiles << std::endl;
+	Rcpp::Rcout << "File size:\t\t" << filesize << std::endl;
+	Rcpp::Rcout << "Number of file names in list:\t" << m_numFiles << std::endl;
 //	for (ui = 0; ui < m_numFiles; ++ui)
-//		std::cout << m_fileNames[ui] << std::endl;
+//		Rcpp::Rcout << m_fileNames[ui] << std::endl;
 
 	return 0;
 }
@@ -106,11 +106,11 @@ int CCombineFiles::ProcessSNPFiles(const Rcpp::StringVector &_basefileNames, con
   std::string header;
 	std::ifstream snpInfile;
 	std::ofstream snpOutfile;
-	unsigned int ui, uj;
+	unsigned int ui; // uj;
 	unsigned int offset;
-	size_t currentFileSize, maxFileSize;
-	char *fileContents = NULL;
-	const char *contentsStart = NULL;
+//	size_t currentFileSize, maxFileSize;
+//	char *fileContents = NULL;
+//	const char *contentsStart = NULL;
 	std::string outData;
 	unsigned int snpid;
 	std::string chr, snp, bp, a1;
@@ -126,7 +126,7 @@ int CCombineFiles::ProcessSNPFiles(const Rcpp::StringVector &_basefileNames, con
 		snpFilename += ".snpinfo";
 		snpInfile.open(snpFilename.c_str());
 		if (!snpInfile.good()) {
-			std::cerr << "Unable to open file " << snpFilename << std::endl;
+			Rcpp::Rcerr << "Unable to open file " << snpFilename << std::endl;
 			return 1;
 		}
 		snpInfile.close();
@@ -135,7 +135,7 @@ int CCombineFiles::ProcessSNPFiles(const Rcpp::StringVector &_basefileNames, con
 	snpFilename = _outFilename + ".snpinfo";
 	snpOutfile.open(snpFilename.c_str());
 	if (!snpOutfile.good()) {
-		std::cerr << "Unable to open output file " << snpFilename << std::endl;
+		Rcpp::Rcerr << "Unable to open output file " << snpFilename << std::endl;
 		return 1;
 	}
 
@@ -169,46 +169,46 @@ int CCombineFiles::ProcessSNPFiles(const Rcpp::StringVector &_basefileNames, con
 int CCombineFiles::ProcessLinearFiles(const std::string &_outFilename){
 	if (Process5out(_outFilename, LinearFileExtension[0], 0))
 		return 1;
-	std::cout << LinearFileExtension[0] << " done" << std::endl;
+	Rcpp::Rcout << LinearFileExtension[0] << " done" << std::endl;
 	if (Process5out(_outFilename, LinearFileExtension[1], 0))
 		return 1;
-	std::cout << LinearFileExtension[1] << " done" << std::endl;
+	Rcpp::Rcout << LinearFileExtension[1] << " done" << std::endl;
 	if (Process4out(_outFilename, LinearFileExtension[2], 2))
 		return 1;
-	std::cout << LinearFileExtension[2] << " done" << std::endl;
+	Rcpp::Rcout << LinearFileExtension[2] << " done" << std::endl;
 	if (Process3out(_outFilename, LinearFileExtension[3], 5))
 		return 1;
-	std::cout << LinearFileExtension[3] << " done" << std::endl;
+	Rcpp::Rcout << LinearFileExtension[3] << " done" << std::endl;
 	if (Process3out(_outFilename, LinearFileExtension[4], 4))
 		return 1;
-	std::cout << LinearFileExtension[4] << " done" << std::endl;
+	Rcpp::Rcout << LinearFileExtension[4] << " done" << std::endl;
 	return 0;
 }
 int CCombineFiles::ProcessLogisticFiles(const std::string &_outFilename){
 	if (Process5out(_outFilename, LogisticFileExtension[0], 0))
 		return 1;
-	std::cout << LogisticFileExtension[0] << " done" << std::endl;
+	Rcpp::Rcout << LogisticFileExtension[0] << " done" << std::endl;
 	if (Process4out(_outFilename, LogisticFileExtension[1], 2))
 		return 1;
-	std::cout << LogisticFileExtension[1] << " done" << std::endl;
+	Rcpp::Rcout << LogisticFileExtension[1] << " done" << std::endl;
 	if (Process4out(_outFilename, LogisticFileExtension[2], 3))
 		return 1;
-	std::cout << LogisticFileExtension[2] << " done" << std::endl;
+	Rcpp::Rcout << LogisticFileExtension[2] << " done" << std::endl;
 	if (Process5out(_outFilename, LogisticFileExtension[3], 0))
 		return 1;
-	std::cout << LogisticFileExtension[3] << " done" << std::endl;
+	Rcpp::Rcout << LogisticFileExtension[3] << " done" << std::endl;
 	if (Process3out(_outFilename, LogisticFileExtension[4], 1))
 		return 1;
-	std::cout << LogisticFileExtension[4] << " done" << std::endl;
+	Rcpp::Rcout << LogisticFileExtension[4] << " done" << std::endl;
 	if (Process3out(_outFilename, LogisticFileExtension[5], 2))
 		return 1;
-	std::cout << LogisticFileExtension[5] << " done" << std::endl;
+	Rcpp::Rcout << LogisticFileExtension[5] << " done" << std::endl;
 	if (Process5out(_outFilename, LogisticFileExtension[6], 0))
 		return 1;
-	std::cout << LogisticFileExtension[6] << " done" << std::endl;
+	Rcpp::Rcout << LogisticFileExtension[6] << " done" << std::endl;
 	if (Process5out(_outFilename, LogisticFileExtension[7], 0))
 		return 1;
-	std::cout << LogisticFileExtension[7] << " done" << std::endl;
+	Rcpp::Rcout << LogisticFileExtension[7] << " done" << std::endl;
 	return 0;
 }
 int CCombineFiles::Process5out(const std::string &_outFilename, const std::string &_extension, unsigned int _statNo) {
@@ -230,7 +230,7 @@ int CCombineFiles::Process5out(const std::string &_outFilename, const std::strin
 		statFilename += ".gxeout";
 		statInfile[ui].open(statFilename.c_str());
 		if (!statInfile[ui].good()) {
-			std::cerr << "Unable to open file " << statFilename << std::endl;
+			Rcpp::Rcerr << "Unable to open file " << statFilename << std::endl;
 			delete[] statInfile;
 			return 1;
 		}
@@ -239,7 +239,7 @@ int CCombineFiles::Process5out(const std::string &_outFilename, const std::strin
 	statFilename = _outFilename + UnderscoreString + _extension + ".gxeout";
 	statOutfile.open(statFilename.c_str());
 	if (!statOutfile.good()) {
-		std::cerr << "Unable to open output file " << statFilename << std::endl;
+		Rcpp::Rcerr << "Unable to open output file " << statFilename << std::endl;
 		return 1;
 	}
 
@@ -336,7 +336,7 @@ int CCombineFiles::Process4out(const std::string &_outFilename, const std::strin
 		statFilename += ".gxeout";
 		statInfile[ui].open(statFilename.c_str());
 		if (!statInfile[ui].good()) {
-			std::cerr << "Unable to open file " << statFilename << std::endl;
+			Rcpp::Rcerr << "Unable to open file " << statFilename << std::endl;
 			delete[] statInfile;
 			return 1;
 		}
@@ -345,7 +345,7 @@ int CCombineFiles::Process4out(const std::string &_outFilename, const std::strin
 	statFilename = _outFilename + UnderscoreString + _extension + ".gxeout";
 	statOutfile.open(statFilename.c_str());
 	if (!statOutfile.good()) {
-		std::cerr << "Unable to open output file " << statFilename << std::endl;
+		Rcpp::Rcerr << "Unable to open output file " << statFilename << std::endl;
 		return 1;
 	}
 
@@ -439,7 +439,7 @@ int CCombineFiles::Process3out(const std::string &_outFilename, const std::strin
 		statFilename += ".gxeout";
 		statInfile[ui].open(statFilename.c_str());
 		if (!statInfile[ui].good()) {
-			std::cerr << "Unable to open file " << statFilename << std::endl;
+			Rcpp::Rcerr << "Unable to open file " << statFilename << std::endl;
 			delete[] statInfile;
 			return 1;
 		}
@@ -448,7 +448,7 @@ int CCombineFiles::Process3out(const std::string &_outFilename, const std::strin
 	statFilename = _outFilename + UnderscoreString + _extension + ".gxeout";
 	statOutfile.open(statFilename.c_str());
 	if (!statOutfile.good()) {
-		std::cerr << "Unable to open output file " << statFilename << std::endl;
+		Rcpp::Rcerr << "Unable to open output file " << statFilename << std::endl;
 		return 1;
 	}
 
@@ -524,7 +524,7 @@ int CCombineFiles::Process3out(const std::string &_outFilename, const std::strin
 int CCombineFiles::ProcessList(bool _bLogistic, const Rcpp::StringVector &_basefileNames, const std::string &_outFilename) {
 	if (ProcessSNPFiles(_basefileNames, _outFilename))
 		return 1;
-	std::cout << "SNP file completed" << std::endl;
+	Rcpp::Rcout << "SNP file completed" << std::endl;
 /*
 	if (_bLogistic == true)
 		return ProcessLinearFiles(_outFilename);

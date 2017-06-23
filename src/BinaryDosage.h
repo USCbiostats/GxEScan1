@@ -7,7 +7,7 @@
 
 int VCF_to_BinaryDosage(std::string vcfFilename, std::string outBaseFilename, unsigned int initSub = 10000);
 
-Rcpp::List ExtractDosages(std::string bdosageFilename, std::string mapFilename, unsigned int numSub, unsigned int numSNPs);
+Rcpp::List ExtractDosages(std::string bdosageFilename, std::string mapFilename, unsigned int numSNPs);
 
 Rcpp::List ExtractMoreDosages(Rcpp::List inputs);
 

@@ -6,7 +6,7 @@
 \usage{
 GxEScan(familyFile, continuous = FALSE, zeroOne = FALSE, pmissing = NA,
   covariateFile, header = TRUE, covsUsed, interactionCov, cmissing = NA,
-  useSex = FALSE, sexInteraction = FALSE, phenotype = NA, bedFile,
+  useSex = FALSE, sexInteraction = FALSE, phenotype = NA, geneticFile,
   mapFile, outfile = "", dg = TRUE, dgxe = TRUE, twodf = TRUE,
   threedf = TRUE, ge = TRUE, caseOnly = TRUE, controlOnly = TRUE,
   dgge = TRUE)
@@ -37,9 +37,27 @@ GxEScan(familyFile, continuous = FALSE, zeroOne = FALSE, pmissing = NA,
 \item{phenotype}{Value from covariate file to be used as phenotype. If the value is NA, the value from
 the family file will be used as the phenotype}
 
-\item{bedFile}{Name of measured binary genetic data file}
+\item{geneticFile}{Name of binary genetic data file may be measured or dosages}
 
 \item{mapFile}{Name of map file associated with genetic data file}
+
+\item{outfile}{Base filename for output files}
+
+\item{dg}{Perform gene only scan}
+
+\item{dgxe}{Perform scan with gene by environment interaction in model}
+
+\item{twodf}{Perform two degree of freedom test (g and gxe)}
+
+\item{threedf}{Perform three degree of freedom test}
+
+\item{ge}{Perform scan of g given e}
+
+\item{caseOnly}{Fit case only model}
+
+\item{controlOnly}{Fit control only model}
+
+\item{dgge}{Perfromf two degree of freedom test (d|g, g|e)}
 }
 \description{
 Function to perform a GEWIS scan

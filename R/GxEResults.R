@@ -7,12 +7,20 @@
 #' Base filename of output files from GxEScan or GxEMerge
 #' @param alpha
 #' Type I error rate
+#' @param exhaustiveTests
+#' boolean array of indicators for which exhaustive tests are to be included in the Excel file
 #' @param topnum
 #' Number of top hits to report
 #' @param includeRanks
 #' Include ranks
+#' @param bins
+#' Number of bins to use when doing weighted tests
+#' @param screens
+#' Significance level required for stage 1 of two step tests
+#' @param twoStepTests
+#' boolean array of indicactos for which two step tests are to included in the Excel file
 #' @export
-GxEResults <- function(homedir, basefilename,
+GxEResults <- function(basefilename,
                        alpha = 0.05, exhaustiveTests,
                        topnum = 10, includeRanks = FALSE,
                        bins, screens, twoStepTests) {
@@ -52,16 +60,13 @@ GxEResults <- function(homedir, basefilename,
   )
   
   rankOrder <- c(rankName1[exhaustiveTests], rankName2[twoStepTests])
-  # Switch to directory with results - Probably not a good idea
-  olddir <- getwd();
-  setwd(homedir)
-  
+
 #  exSummary <- InitializeExhaustiveSummary(alpha)
 #  twoStepSummary <- InitializeTwoStepSummary(screens, bins)
 # Read in the SNP information  
   info <- data.table::fread(paste(basefilename, ".snpinfo", sep=""), header = TRUE, sep = '\t', stringsAsFactors = FALSE)
   M.info <- nrow(info)
-  setkey(info, SNPID)
+  data.table::setkeyv(info, cols="SNPID")
 # Determine if all values will be displayed in QQ and Manhattan plots
   # Not sure this is a good idea - Not every SNP will have converged
   if (M.info < 1e5)
@@ -73,9 +78,9 @@ GxEResults <- function(homedir, basefilename,
   reqSig1 <- rep(NA, 8)
   numSNPs2 <- rep(NA, 4)
   reqSig2 <- rep(NA, 4)
-  testRanks <- data.table(info[,SNPID])
-  setnames(testRanks, 1, "SNPID")
-  setkey(testRanks, SNPID)
+  testRanks <- data.table::data.table(info[,c("SNPID")])
+  data.table::setnames(testRanks, 1, "SNPID")
+  data.table::setkeyv(testRanks, cols="SNPID")
   top <- list()
   top2 <- list()
   gxeData <- list()
@@ -94,7 +99,7 @@ GxEResults <- function(homedir, basefilename,
             reqSig1[k] <- x1$sig
             top[[k]] <- x1$top
             if (includeRanks) {
-              setkey(x1$ranks, SNPID)
+              data.table::setkeyv(x1$ranks, cols="SNPID")
               testRanks <- x1$ranks[testRanks]
             }
           }
@@ -114,7 +119,7 @@ GxEResults <- function(homedir, basefilename,
       reqSig2[i] <- y$sig
       top2[[i]] = y$top
       if (includeRanks) {
-        setkey(y$rank, SNPID)
+        data.table::setkeyv(y$rank, cols="SNPID")
         testRanks <- y$rank[testRanks]
       }
     }
@@ -134,7 +139,7 @@ GxEResults <- function(homedir, basefilename,
         reqSig1[i] <- x$sig
         top[[i]] <- x$top
         if (includeRanks) {
-          setkey(x$ranks, SNPID)
+          data.table::setkeyv(x$ranks, cols="SNPID")
           testRanks <- x$ranks[testRanks]
         }
       }
@@ -142,12 +147,14 @@ GxEResults <- function(homedir, basefilename,
     }
   }
   # Delete existing Excel output file if it exists
-  id <- grep(paste(basefilename, ".xlsx", sep = ""), dir(homedir))
-  todelete <- dir(homedir, full.names = TRUE)[id]
-  unlink(todelete)
+  excelFilename <- paste(basefilename, ".xlsx", sep = "")
+  if (file.exists(excelFilename)) file.remove(excelFilename)
+#  id <- grep(paste(basefilename, ".xlsx", sep = ""), dir())
+#  todelete <- dir(homedir, full.names = TRUE)[id]
+#  unlink(todelete)
   # Create Excel workbook
   numMethods = sum(exhaustiveTests) + sum(twoStepTests)
-  wb <- loadWorkbook(paste(basefilename, ".xlsx", sep = ""), create = TRUE)
+  wb <- XLConnect::loadWorkbook(excelFilename, create = TRUE)
   WriteSummaryWorksheet(workbook = wb, exhaustiveTests = exhaustiveTests, exhaustiveNames = ptitle1,
                         numSNPs1 = numSNPs1, sig1 = alpha, twoStepTests = twoStepTests, twoStepNames = ptitle2,
                         numSNPs2 = numSNPs2, sig2 = screens, bins = bins, step1Test = twoStepSteps[,1])
@@ -170,7 +177,24 @@ GxEResults <- function(homedir, basefilename,
   #  Write2StepSheet(wb, "EG2df_Subset", paste(basefilename, "EG2DF", sep = "_"),
 #                  "EG|2df: 2-step with screening based on E-G association; subset testing of G, GxE in Step 2",
 #                 top2[[1]], numSNPs2[i], reqSig2[i], includeRanks, testRanks, "EG2df", numMethods)
-  saveWorkbook(wb)
-  setwd(olddir);
+  XLConnect::saveWorkbook(wb)
+  for(i in 1:8) {
+    fn <- paste(basefilename, "_", extensions1[i], "_Manhattan", ".png", sep="")
+    if (file.exists(fn)) file.remove(fn)
+    fn <- paste(basefilename, "_", extensions1[i], "_QQ", ".png", sep="")
+    if (file.exists(fn)) file.remove(fn)
+  }
+  for(i in 1:4) {
+    fn <- paste(basefilename, "_", extensions2[i], "_Step1_Manhattan", ".png", sep="")
+    if (file.exists(fn)) file.remove(fn)
+    fn <- paste(basefilename, "_", extensions2[i], "_Step1_QQ", ".png", sep="")
+    if (file.exists(fn)) file.remove(fn)
+    fn <- paste(basefilename, "_", extensions2[i], "_Step2_Manhattan", ".png", sep="")
+    if (file.exists(fn)) file.remove(fn)
+    fn <- paste(basefilename, "_", extensions2[i], "_Step2_QQ", ".png", sep="")
+    if (file.exists(fn)) file.remove(fn)
+    fn <- paste(basefilename, "_", extensions2[i], "_Weighted", ".png", sep="")
+    if (file.exists(fn)) file.remove(fn)
+  }
   return (0)
 }

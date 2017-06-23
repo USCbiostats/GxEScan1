@@ -148,7 +148,7 @@ int CGxEScan::AllocateMemory(unsigned int numSNPs) {
     m_nCasesOut.set_size(numSNPs);
     m_defIndices.set_size(m_numCovSq);
   } catch (...) {
-    std::cerr << "Error allocating memory" << std::endl;
+    Rcpp::Rcerr << "Error allocating memory" << std::endl;
     return 1;
   }
   for (ui = 0; ui < m_numCovSq; ++ui)
@@ -171,7 +171,7 @@ int CGxEScan::MinMaxTest() {
   // Test if minimum in cases is less than control or vice versa
   for (ui = 0; ui < m_numCov; ++ui) {
     if ((minCases(ui) > maxControls(ui)) || (maxCases(ui) < minControls(ui))) {
-      std::cerr << "At least one covariate can identify outcome" << std::endl;
+      Rcpp::Rcerr << "At least one covariate can identify outcome" << std::endl;
       return 1;
     }
   }
@@ -188,7 +188,7 @@ int CGxEScan::Standardize() {
   zeroStd = find(m_stdDevX.cols(1, m_numCov) == 0);
   // Check that each covariate isn't a constant
   if (zeroStd.n_elem > 0) {
-    std::cerr << "At least one covariate has standard deviation of 0" << std::endl;
+    Rcpp::Rcerr << "At least one covariate has standard deviation of 0" << std::endl;
     return 1;
   }
   // Subtract the mean and divide by the standard deviation
@@ -251,8 +251,6 @@ int CGxEScan::CovariatesOnly() {
   aL = -(m_meanX.submat(0, 0, 0, m_numCov) / m_stdDevX.submat(0, 0, 0, m_numCov));
   m_covOnlyBeta(0) = arma::dot(aL.t(), m_betaInit.subvec(0, m_numCov));
   m_covOnlyStat(0) = arma::as_scalar(m_covOnlyBeta(0) * sqrt(arma::inv_sympd(aL * m_invInfo.submat(0, 0, m_numCov, m_numCov) * aL.t())));
-//  std::cout << aL << std::endl;
-//  std::cout << m_covOnlyBeta << m_covOnlyStat;
   return 0;
 }
 // Add the dosage data to the case and control datasets
@@ -303,7 +301,6 @@ void CGxEScan::CalculatePLRScoreConstants(unsigned int nc, bool bCases, bool bCo
     m_PLRscoreConstant.subvec(0, nc) += m_xControls.submat(m_notMissingControls, m_defIndices.subvec(0,nc)).t() * m_xControls.submat(m_notMissingControls, m_defIndices.subvec(nc + 1, nc + 1));
     m_PLRscoreConstant.subvec(nc + 1, nc + nc + 1) += m_xControls.submat(m_notMissingControls, m_defIndices.subvec(0,nc)).t() * m_xControls.submat(m_notMissingControls, m_defIndices.subvec(nc + 2, nc + 2));
   }
-//  std::cout << m_PLRscoreConstant << std::endl;
 }
 // Polytomous Score
 int CGxEScan::CalculatePLRScore(unsigned int nc, bool bCases, bool bControls) {
@@ -328,13 +325,11 @@ int CGxEScan::CalculatePLRScore(unsigned int nc, bool bCases, bool bControls) {
     m_PLRscore.subvec(0, nc) -= m_xControls.submat(m_notMissingControls, m_defIndices.subvec(0,nc)).t() * m_PLRabx2.submat(m_notMissingControls, m_defIndices.subvec(0,0));
     m_PLRscore.subvec(nc + 1, nc + nc + 1) -= m_xControls.submat(m_notMissingControls, m_defIndices.subvec(0,nc)).t() * m_PLRabx2.submat(m_notMissingControls, m_defIndices.subvec(1,1));
   }
-//  std::cout << m_PLRabx1.rows(0,5) << std::endl;
-//  std::cout << m_PLRscore << std::endl;
   return 0;
 }
 // Polytomous Information
 int CGxEScan::CalculatePLRInformation(unsigned int nc, bool bCases, bool bControls) {
-  unsigned int ui, uj, uk, um, un;
+  unsigned int uj, uk, um, un; //ui
   
   if (bCases == true) {
     m_PLRsumabx1.elem(m_notMissingCases) = -m_PLRabx1.submat(m_notMissingCases, m_defIndices.subvec(0,0)) % m_PLRabx1.submat(m_notMissingCases, m_defIndices.subvec(1,1));
@@ -349,7 +344,6 @@ int CGxEScan::CalculatePLRInformation(unsigned int nc, bool bCases, bool bContro
   for (uj = 0, um = 0; uj < nc + 1; ++uj, um += m_numCov + 4) {
     um -= uj;
     for (uk = uj, un = um; uk < nc + 1; ++uk, ++un) {
-//      std::cout << uj << '\t' << uk << '\t' << um << '\t' << un << std::endl;
       if (bCases == true) {
         m_PLRinfo(uj, uk) += arma::dot(m_PLRabx1.submat(m_notMissingCases, m_defIndices.subvec(0,0)), m_xSqCases.submat(m_notMissingCases, m_defIndices.subvec(un, un)));
         m_PLRinfo(uj + nc + 1, uk + nc + 1) += arma::dot(m_PLRabx1.submat(m_notMissingCases, m_defIndices.subvec(1,1)), m_xSqCases.submat(m_notMissingCases, m_defIndices.subvec(un, un)));
@@ -367,9 +361,6 @@ int CGxEScan::CalculatePLRInformation(unsigned int nc, bool bCases, bool bContro
       m_PLRinfo(uk + nc + 1, uj + nc + 1) = m_PLRinfo(uj + nc + 1, uk + nc + 1);
     }
   }
-//  std::cout << m_PLRinfo << std::endl;
-//  std::cout << m_PLRsumabx1.subvec(0,5) << std::endl;
-//  std::cout << m_PLRabx1.rows(0,5) << std::endl;
   return 0;
 }
 void CGxEScan::CollapsePLRInformation(unsigned int c1, unsigned int c2) {
@@ -378,7 +369,6 @@ void CGxEScan::CollapsePLRInformation(unsigned int c1, unsigned int c2) {
   m_PLRinfo.cols(c1 + m_numCov + 1, c2 + m_numCov + 1).zeros();
   m_PLRinfo.rows(c1 + m_numCov + 1, c2 + m_numCov + 1).zeros();
   m_PLRinfo.submat(c1 + m_numCov + 1, c1 + m_numCov + 1, c2 + m_numCov + 1, c2 + m_numCov + 1).diag().ones();
-//  std::cout << m_PLRinfo << std::endl;
 }
 void CGxEScan::CountGenes() {
   m_geneCount(0, 1) = arma::as_scalar(sum(m_xCases.submat(m_notMissingCases, m_defIndices.subvec(m_numCov + 1, m_numCov + 1))));
@@ -415,23 +405,17 @@ int CGxEScan::PolyLogReg(bool bCases, bool bControls, bool bRestricted) {
     n2 += m_geneCount(1, 2);
     d += m_geneCount(1, 0);
   }
-//  std::cout << d << '\t' << n1 << '\t' << n2 << std::endl;
   if (d < 5 || n1 < 5 || n2 < 5) {
-    std::cout << "too few 1\t" << d << '\t' << n1 << '\t' << n2 << std::endl;
+    Rcpp::Rcerr << "too few 1\t" << d << '\t' << n1 << '\t' << n2 << std::endl;
     return 1;
   }
   m_PLRbeta(0,0) = log(n1 / d);
   m_PLRbeta(0,1) = log(n2 / d);
-//  std::cout << m_PLRbeta << std::endl;
   CalculatePLRScoreConstants(m_numCov, bCases, bControls);
   for (ui = 0; ui < 25; ++ui) {
-    //    std::cout << "Score" << std::endl;
-    // std::cout << m_PLRscore << std::endl;
     CalculatePLRScore(m_numCov, bCases, bControls);
     m_PLRscore.subvec(c1, c2) += 2 * m_PLRscore.subvec(c1 + m_numCov + 1, c2 + m_numCov + 1);
-//        std::cout << "Info" << std::endl;
     CalculatePLRInformation(m_numCov, bCases, bControls);
-    //    std::cout << "Info collapse" << std::endl;
     CollapsePLRInformation(c1, c2);
     if (max(abs(m_PLRscore.subvec(0, c3))) < 1e-6)
       break;
@@ -441,12 +425,10 @@ int CGxEScan::PolyLogReg(bool bCases, bool bControls, bool bRestricted) {
     } catch (...) {
       return 1;
     }
-    //    std::cout << m_PLRbetaDiff << std::endl;
     m_PLRbeta.submat(0, 0, m_numCov, 0) += m_PLRbetaDiff.subvec(0, m_numCov);
     m_PLRbeta.submat(0, 1, m_numCov, 1) += m_PLRbetaDiff.subvec(m_numCov + 1, m_numCov + m_numCov + 1);
     m_PLRbeta.submat(c1, 1, c2, 1) = 2 * m_PLRbeta.submat(c1, 0, c2, 0);
     //    m_PLRbeta(0,0) += m_PLRscore(0) / m_PLRinfo(0,0);
-    //  std::cout << m_PLRbeta << std::endl;
   }
   if (ui == 25)
     return 1;
@@ -477,7 +459,6 @@ int CGxEScan::LogReg(unsigned int nc, bool hw, bool bCases, bool bControls) {
   } else {
     m_scoreConstant.subvec(0, nc) = sum(m_xCases.submat(m_notMissingCases, m_defIndices.subvec(0, nc))).t();
   }
-//  std::cout << m_scoreConstant.subvec(0, nc) << std::endl;
   for (ui = 0; ui < 25; ++ui) {
     // Calculating the score
     if (bCases == true) {
@@ -493,7 +474,6 @@ int CGxEScan::LogReg(unsigned int nc, bool hw, bool bCases, bool bControls) {
       m_score.subvec(0, nc) -= m_xCases.submat(m_notMissingCases, m_defIndices.subvec(0, nc)).t() * m_abx1.elem(m_notMissingCases);
     if (bControls == true)
       m_score.subvec(0, nc) -= m_xControls.submat(m_notMissingControls, m_defIndices.subvec(0, nc)).t() * m_abx2.elem(m_notMissingControls);
-//    std::cout << m_score.subvec(0, nc) << std::endl;
     if (m_score.subvec(0,nc).is_finite() == false)
       return 1;
     // Calculating the information
@@ -520,7 +500,6 @@ int CGxEScan::LogReg(unsigned int nc, bool hw, bool bCases, bool bControls) {
     // will be needed to calculate statistics
     if (arma::max(arma::abs(m_score.subvec(0, nc))) < 1e-8)
       break;
-//    std::cout << m_info.submat(0, 0, nc, nc);
     // Newton-Raphson step
     try {
       m_betaDiff.subvec(0, nc) = arma::solve(m_info.submat(0, 0, nc, nc), m_score.subvec(0, nc), arma::solve_opts::no_approx);
@@ -537,14 +516,11 @@ int CGxEScan::LogReg(unsigned int nc, bool hw, bool bCases, bool bControls) {
   } catch (...) {
     return 1;
   }
-//  std::cout << m_score.subvec(0, nc) << std::endl;
-//  std::cout << m_info.submat(0, 0, nc, nc) << std::endl;
-//  std::cout << m_invInfo;
   return 0;
 }
 int CGxEScan::AlleleTests(unsigned int un) {
-  double b1, b2, b3;
-  double z1, z2, z3;
+//  double b1, b2, b3;
+//  double z1, z2, z3;
   
   if (m_bModel3 == true) {
     m_beta.zeros();
@@ -585,8 +561,8 @@ int CGxEScan::AlleleTests(unsigned int un) {
   return 0;
 }
 int CGxEScan::PolyLogRegTests(unsigned int un) {
-  double b1, b2, b3;
-  double z1, z2, z3;
+//  double b1, b2, b3;
+//  double z1, z2, z3;
   
   if (m_bModel3 == true) {
     if (PolyLogReg() != 0)
@@ -612,8 +588,8 @@ int CGxEScan::PolyLogRegTests(unsigned int un) {
   return 0;
 }
 int CGxEScan::RestrictedPolyLogRegTests(unsigned int un) {
-  double b1, b2, b3;
-  double z1, z2, z3;
+//  double b1, b2, b3;
+//  double z1, z2, z3;
 
   if (m_bModel3 == true) {
     if (PolyLogReg(true, true, true) != 0)
@@ -706,7 +682,6 @@ void CGxEScan::WriteBetaResults(std::string outFilename, unsigned int zNum, unsi
                << m_zOut(m_sort(ui), zNum) << '\t'
                << 2 * R::pnorm5(std::abs(m_zOut(m_sort(ui), zNum)), 0, 1, 0, 0) << std::endl;
   }
-//  std::cout << m_zOut(1,0) << '\t' << 2 * R::pnorm5(std::abs(m_zOut(1,0)), 0, 1, 0, 0) << std::endl;
   resultFile.close();
 }
 // Write results with chi-squared values
@@ -732,7 +707,6 @@ void CGxEScan::WriteChiResults(std::string outFilename, unsigned int df, unsigne
       
 //    }
   }
-  //  std::cout << m_zOut(1,0) << '\t' << 2 * R::pnorm5(std::abs(m_zOut(1,0)), 0, 1, 0, 0) << std::endl;
   resultFile.close();
 }
 // Write files with test results
@@ -742,7 +716,6 @@ void CGxEScan::WriteTestResults(std::string outFilename) {
   ui = 0;
   if (m_bDG == true) {
     WriteBetaResults(outFilename + "_CC_DG.gxeout", ui);
-//    std::cout << m_zOut(2, ui) << '\t' << 2 * R::pnorm5(std::abs(m_zOut(2,ui)), 0, 1, 0, 0) << std::endl;
     ++ui;
   }
   
@@ -809,9 +782,9 @@ void CGxEScan::Scan(CGeneticData *geneticData, std::string outFilename) {
   XSquared();
   if (CovariatesOnly() != 0)
     return;
-
+  
   if (outFilename.length() == 0)
-    std::cout << "No output file" << std::endl;
+    Rcpp::Rcerr << "No output file" << std::endl;
   else {
     snpOutfile.open(outFilename + ".snpinfo");
     if (!snpOutfile.good())
@@ -821,10 +794,7 @@ void CGxEScan::Scan(CGeneticData *geneticData, std::string outFilename) {
   
   InitializeValues();
   geneticData->GetFirst();
-//  for (ui = 0; ui < 13; ++ui)
-//    geneticData->GetNext();
   for (ui = 0; ui < geneticData->NumSNPs(); ++ui) {
-//  for (ui = 0; ui < 3; ++ui) {
     AddGeneticData(geneticData->Dosage(), ui);
     if (m_freq(ui, 0) < 0.01 || m_freq(ui) > 0.99) {
       geneticData->GetNext();
@@ -884,9 +854,4 @@ void CGxEScan::Scan(CGeneticData *geneticData, std::string outFilename) {
   }
   snpOutfile.close();
   WriteTestResults(outFilename);
-//  std::cout << absZ.min() << '\t' << absZ.max() << std::endl;
-//  std::cout << m_beta1sort(0) << '\t' << m_zOut(m_beta1sort(0), 0) << std::endl;
-  //std::cout << nf << std::endl;
-  //  std::cout << "beta\n" << m_beta.subvec(0, m_numCov + 1) << "invInfo\n" << m_invInfo.submat(0, 0, m_numCov + 1, m_numCov + 1) << std::endl;
-//  std::cout << m_beta.subvec(0, m_numCov + 1) / sqrt(m_invInfo.submat(0, 0, m_numCov + 1, m_numCov + 1).diag());
 }

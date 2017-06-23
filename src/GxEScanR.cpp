@@ -11,10 +11,12 @@
 //' Vector of outcome values, 0 or 1, all others treated as missing
 //' @param x
 //' Matric of covariates. Last column is tested for interaction with gene
-//' @param BedFilename
-//' Name of file with measured genetic data in plink format
+//' @param GeneticDataFilename
+//' Name of file with genetic data in a binary file (measured or dosage data)
 //' @param MapFilename
 //' Name of map file associated with measured genetic data file
+//' @param outFilename
+//' Base filename for output files
 //' @param dg
 //' Perform D|G test
 //' @param dgxe
@@ -39,26 +41,35 @@
 //' The parameter estimates
 //' The Z statistic for each estimate
 //' The 2df chi-squared statistic for beta_g = 0 and beta_GxE = 0
-//' @importFrom Rcpp evalCpp
-//' @importFrom data.table fread setkey
-//' @useDynLib GxEScanR
 //' @export
 // [[Rcpp::export]]
-Rcpp::List ScanSNPs(const arma::vec& y, const arma::mat& x, std::string BedFilename, std::string MapFilename, std::string outFilename,
+Rcpp::List ScanSNPs(const arma::vec& y, const arma::mat& x, std::string GeneticDataFilename, std::string MapFilename, std::string outFilename,
                     bool dg, bool dgxe, bool twodf, bool threedf, bool ge, bool caseOnly, bool controlOnly, bool dgge) {
 //  unsigned dg, unsigned dgxe = 1, unsigned twodf = 1, unsigned threedf = 1, unsigned ge = 1, unsigned caseOnly = 1, unsigned controlOnly = 1, unsigned dgge = 1) {
   CBedFile bedFile;
+  CBinaryDosage dosageFile;
+  CGeneticData *geneticData;
   CGxEScan gxeScan(y, x);
+  Rcpp::List results;
   
-  if (bedFile.ReadFile(BedFilename, y.n_elem, MapFilename) != 0) {
-    std::cerr << bedFile.ErrorString() << std::endl;
-    return Rcpp::List::create(Rcpp::Named("Error") = bedFile.ErrorString());
+  if (bedFile.ReadFile(GeneticDataFilename, y.n_elem, MapFilename) != 0) {
+    if (dosageFile.ReadFile(GeneticDataFilename, y.n_elem, MapFilename) != 0) {
+      Rcpp::Rcerr << "Unable to read genetic data files" << std::endl;
+      return results;
+    }
+    geneticData = &dosageFile;
+  } else {
+    geneticData = &bedFile;
   }
-  std::cout << "Read binary dosage file" << std::endl;
+  Rcpp::Rcout << "Read binary dosage file" << std::endl;
   gxeScan.SelectTests(dg, dgxe, twodf, threedf, ge, caseOnly, controlOnly, dgge);
-//  gxeScan.SelectTests(dg == 1, dgxe == 1, twodf == 1, threedf == 1, ge == 1, caseOnly == 1, controlOnly == 1, dgge == 1);
-  gxeScan.Scan(&bedFile, outFilename);
-  std::cout << "Scan complete" << std::endl;
+  try {
+    gxeScan.Scan(&bedFile, outFilename);
+  } catch(...) {
+    Rcpp::Rcerr << "Error" << std::endl;
+    return NULL;
+  }
+  Rcpp::Rcout << "Scan complete" << std::endl;
   return Rcpp::List::create(
     Rcpp::Named("AlleleFreq") = gxeScan.Frequency(),
     Rcpp::Named("N") = gxeScan.N(),
@@ -101,8 +112,7 @@ Rcpp::List ReadGeneticFile(std::string BedFilename, unsigned int numSubjects, st
     if (bedFile.MapFile().SNP()[ui] == SNP)
       break;
   }
-  std::cout << ui << std::endl;
-  
+
   bedFile.GetFirst();
   for (uj = 0; uj < ui; ++ uj)
     bedFile.GetNext();

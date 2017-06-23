@@ -44,6 +44,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ExtractSNPDosages
+Rcpp::List ExtractSNPDosages(std::string bdosageFilename, std::string mapFilename, unsigned int numSub, std::string snpName, unsigned int flanking);
+RcppExport SEXP GxEScanR_ExtractSNPDosages(SEXP bdosageFilenameSEXP, SEXP mapFilenameSEXP, SEXP numSubSEXP, SEXP snpNameSEXP, SEXP flankingSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type bdosageFilename(bdosageFilenameSEXP);
+    Rcpp::traits::input_parameter< std::string >::type mapFilename(mapFilenameSEXP);
+    Rcpp::traits::input_parameter< unsigned int >::type numSub(numSubSEXP);
+    Rcpp::traits::input_parameter< std::string >::type snpName(snpNameSEXP);
+    Rcpp::traits::input_parameter< unsigned int >::type flanking(flankingSEXP);
+    rcpp_result_gen = Rcpp::wrap(ExtractSNPDosages(bdosageFilename, mapFilename, numSub, snpName, flanking));
+    return rcpp_result_gen;
+END_RCPP
+}
 // GxEMerge
 int GxEMerge(bool logistic, Rcpp::StringVector basefileNames, std::string outfileName);
 RcppExport SEXP GxEScanR_GxEMerge(SEXP logisticSEXP, SEXP basefileNamesSEXP, SEXP outfileNameSEXP) {
@@ -58,14 +73,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // ScanSNPs
-Rcpp::List ScanSNPs(const arma::vec& y, const arma::mat& x, std::string BedFilename, std::string MapFilename, std::string outFilename, bool dg, bool dgxe, bool twodf, bool threedf, bool ge, bool caseOnly, bool controlOnly, bool dgge);
-RcppExport SEXP GxEScanR_ScanSNPs(SEXP ySEXP, SEXP xSEXP, SEXP BedFilenameSEXP, SEXP MapFilenameSEXP, SEXP outFilenameSEXP, SEXP dgSEXP, SEXP dgxeSEXP, SEXP twodfSEXP, SEXP threedfSEXP, SEXP geSEXP, SEXP caseOnlySEXP, SEXP controlOnlySEXP, SEXP dggeSEXP) {
+Rcpp::List ScanSNPs(const arma::vec& y, const arma::mat& x, std::string GeneticDataFilename, std::string MapFilename, std::string outFilename, bool dg, bool dgxe, bool twodf, bool threedf, bool ge, bool caseOnly, bool controlOnly, bool dgge);
+RcppExport SEXP GxEScanR_ScanSNPs(SEXP ySEXP, SEXP xSEXP, SEXP GeneticDataFilenameSEXP, SEXP MapFilenameSEXP, SEXP outFilenameSEXP, SEXP dgSEXP, SEXP dgxeSEXP, SEXP twodfSEXP, SEXP threedfSEXP, SEXP geSEXP, SEXP caseOnlySEXP, SEXP controlOnlySEXP, SEXP dggeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
-    Rcpp::traits::input_parameter< std::string >::type BedFilename(BedFilenameSEXP);
+    Rcpp::traits::input_parameter< std::string >::type GeneticDataFilename(GeneticDataFilenameSEXP);
     Rcpp::traits::input_parameter< std::string >::type MapFilename(MapFilenameSEXP);
     Rcpp::traits::input_parameter< std::string >::type outFilename(outFilenameSEXP);
     Rcpp::traits::input_parameter< bool >::type dg(dgSEXP);
@@ -76,7 +91,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type caseOnly(caseOnlySEXP);
     Rcpp::traits::input_parameter< bool >::type controlOnly(controlOnlySEXP);
     Rcpp::traits::input_parameter< bool >::type dgge(dggeSEXP);
-    rcpp_result_gen = Rcpp::wrap(ScanSNPs(y, x, BedFilename, MapFilename, outFilename, dg, dgxe, twodf, threedf, ge, caseOnly, controlOnly, dgge));
+    rcpp_result_gen = Rcpp::wrap(ScanSNPs(y, x, GeneticDataFilename, MapFilename, outFilename, dg, dgxe, twodf, threedf, ge, caseOnly, controlOnly, dgge));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -93,4 +108,20 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(ReadGeneticFile(BedFilename, numSubjects, MapFilename, SNP));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"GxEScanR_VCF_to_BinaryDosage", (DL_FUNC) &GxEScanR_VCF_to_BinaryDosage, 3},
+    {"GxEScanR_ExtractDosages", (DL_FUNC) &GxEScanR_ExtractDosages, 4},
+    {"GxEScanR_ExtractMoreDosages", (DL_FUNC) &GxEScanR_ExtractMoreDosages, 1},
+    {"GxEScanR_ExtractSNPDosages", (DL_FUNC) &GxEScanR_ExtractSNPDosages, 5},
+    {"GxEScanR_GxEMerge", (DL_FUNC) &GxEScanR_GxEMerge, 3},
+    {"GxEScanR_ScanSNPs", (DL_FUNC) &GxEScanR_ScanSNPs, 13},
+    {"GxEScanR_ReadGeneticFile", (DL_FUNC) &GxEScanR_ReadGeneticFile, 4},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_GxEScanR(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

@@ -20,8 +20,8 @@ Having to do this can slow down the speed of the routine because of memory
 allocations/deallocations.}
 }
 \value{
-0 success
-1 failure
+0 failure
+otherwise number of subjects read
 }
 \description{
 Function to convert a VCF file to a binary dosage file for GxEScan. 

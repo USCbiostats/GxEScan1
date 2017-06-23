@@ -4,17 +4,19 @@
 \alias{ScanSNPs}
 \title{Function to perform a GEWIS scan}
 \usage{
-ScanSNPs(y, x, BedFilename, MapFilename, outFilename, dg, dgxe, twodf, threedf,
-  ge, caseOnly, controlOnly, dgge)
+ScanSNPs(y, x, GeneticDataFilename, MapFilename, outFilename, dg, dgxe, twodf,
+  threedf, ge, caseOnly, controlOnly, dgge)
 }
 \arguments{
 \item{y}{Vector of outcome values, 0 or 1, all others treated as missing}
 
 \item{x}{Matric of covariates. Last column is tested for interaction with gene}
 
-\item{BedFilename}{Name of file with measured genetic data in plink format}
+\item{GeneticDataFilename}{Name of file with genetic data in a binary file (measured or dosage data)}
 
 \item{MapFilename}{Name of map file associated with measured genetic data file}
+
+\item{outFilename}{Base filename for output files}
 
 \item{dg}{Perform D|G test}
 

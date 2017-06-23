@@ -1,6 +1,7 @@
 .Rhistory
 .Rapp.History
 .RData
+.Rbuildignore
 *-ex.R
 /*.tar.gz
 /*.Rcheck/
