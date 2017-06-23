@@ -19,7 +19,7 @@ CGxEScan::CGxEScan(const arma::vec& y, const arma::mat& x) {
   arma::uvec ccorder;
   arma::vec ty;
   arma::mat tx;
-  int ui;
+  unsigned int ui;
 
   m_bDG = true;
   m_bGxE = true;
@@ -656,7 +656,7 @@ void CGxEScan::WriteBetaResults(std::string outFilename, unsigned int zNum, unsi
   arma::vec absZ;
   
   numSNPs = m_betaOut.n_rows;
-  resultFile.open(outFilename);
+  resultFile.open(outFilename.c_str());
   resultFile << "SNPID\tNMISS\tBETA\tSTAT\tP" << std::endl;
   absZ = abs(m_zOut.col(zNum));
   absZ(arma::find_nonfinite(absZ)).fill(-1);
@@ -692,7 +692,7 @@ void CGxEScan::WriteChiResults(std::string outFilename, unsigned int df, unsigne
   arma::vec chiSqSort;
   
   numSNPs = m_betaOut.n_rows;
-  resultFile.open(outFilename);
+  resultFile.open(outFilename.c_str());
   resultFile << "SNPID\tNMISS\tSTAT\tP" << std::endl;
   chiSqSort = m_chiSqOut.col(chiNum);
   chiSqSort(arma::find_nonfinite(chiSqSort)).fill(-1);
@@ -786,7 +786,7 @@ void CGxEScan::Scan(CGeneticData *geneticData, std::string outFilename) {
   if (outFilename.length() == 0)
     Rcpp::Rcerr << "No output file" << std::endl;
   else {
-    snpOutfile.open(outFilename + ".snpinfo");
+    snpOutfile.open((outFilename + ".snpinfo").c_str());
     if (!snpOutfile.good())
       return;
     snpOutfile << "SNPID\tCHR\tSNP\tBP\tA1" << std::endl;

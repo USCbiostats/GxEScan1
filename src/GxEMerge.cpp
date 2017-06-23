@@ -106,7 +106,7 @@ int CCombineFiles::ProcessSNPFiles(const Rcpp::StringVector &_basefileNames, con
   std::string header;
 	std::ifstream snpInfile;
 	std::ofstream snpOutfile;
-	unsigned int ui; // uj;
+	int ui; // uj;
 	unsigned int offset;
 //	size_t currentFileSize, maxFileSize;
 //	char *fileContents = NULL;
