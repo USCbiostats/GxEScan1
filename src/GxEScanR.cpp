@@ -64,10 +64,10 @@ Rcpp::List ScanSNPs(const arma::vec& y, const arma::mat& x, std::string GeneticD
   Rcpp::Rcout << "Read binary dosage file" << std::endl;
   gxeScan.SelectTests(dg, dgxe, twodf, threedf, ge, caseOnly, controlOnly, dgge);
   try {
-    gxeScan.Scan(&bedFile, outFilename);
+    gxeScan.Scan(geneticData, outFilename);
   } catch(...) {
     Rcpp::Rcerr << "Error" << std::endl;
-    return NULL;
+    return results;
   }
   Rcpp::Rcout << "Scan complete" << std::endl;
   return Rcpp::List::create(
